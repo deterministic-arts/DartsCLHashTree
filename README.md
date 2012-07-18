@@ -14,6 +14,12 @@ Right now, it provides:
     from S. Adams' paper "Implementing Sets Efficiently in a Functional 
     Language"
 
+The tree structures provided by this project are immutable, i.e.,
+cannot be modified once they have been constructed. Mutation 
+operations return newly constructed tree instances (which may 
+actually share state with the original tree, to which the 
+operation was applied).
+
 
 Hash Tree
 ----------
@@ -95,6 +101,11 @@ implementation only supports string designators as keys. The algorithms
 are easily generalizable, but I could not yet decide on an interface for
 that, and string keys were the only ones, I needed up to now.
 
+Since property trees are actually ordered, all iteration functions (like
+`ptree-map`, `ptree-fold`, ...) iterate over the entries of a property 
+tree in proper key order. Likewise, collector functions like `ptree-keys`,
+`ptree-values`, ... will always yield the elements in proper key order.
+
 - `ptreep value` => `flag`
 - `empty-ptree-p tree` => `flag`
 - `ptree-size tree` => `integer`
@@ -107,6 +118,8 @@ that, and string keys were the only ones, I needed up to now.
 - `ptree-smallest key tree` => `ptree`
 - `ptree-largest key tree` => `ptree`
 - `ptree-get key tree &optional default` => `value`, `flag`
+- `ptree-insert key value tree &optional test` => `ptree`, `flag`
+- `ptree-update key tree mutator` => `ptree`, `flag`
 - `ptree-remove key tree` => `ptree`, `flag`
 - `ptree-map function tree &key direction collectp start end` => `value`
 - `ptree-fold function seed tree &key direction start end` => `value`
@@ -119,3 +132,14 @@ that, and string keys were the only ones, I needed up to now.
 - `ptree-iterator tree` => `function`
 - `ptree-equal tree1 tree2` => `boolean`
 - `ptree &rest pairs` => `ptree`
+
+
+Future Plans
+-------------
+
+- Generalization of the property tree code to arbitrary `<`-style
+  comparison predicates
+
+- Homogenization of the hashtree and ptree interfaces (e.g., `ptree-update`
+  va. `ptree-insert` vs. `hashtree-update`)
+
