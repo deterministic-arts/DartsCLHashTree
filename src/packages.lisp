@@ -24,9 +24,9 @@
 (defpackage "DARTS.LIB.HASHTREE"
   (:use "COMMON-LISP")
   (:export "MAKE-HASHTREE" "HASHTREE-GET" "HASHTREE-UPDATE" "HASHTREE-REMOVE"
-		   "HASHTREE-MAP" "HASHTREE-COUNT" "HASHTREE-TEST" "HASHTREE-HASH"
-		   "HASHTREE-EMPTY-P" "HASHTREEP" "HASHTREE-FOLD" "DO-HASHTREE"
-		   "HASHTREE-KEYS" "HASHTREE-VALUES" "HASHTREE-PAIRS")
+           "HASHTREE-MAP" "HASHTREE-COUNT" "HASHTREE-TEST" "HASHTREE-HASH"
+           "HASHTREE-EMPTY-P" "HASHTREEP" "HASHTREE-FOLD" "DO-HASHTREE"
+           "HASHTREE-KEYS" "HASHTREE-VALUES" "HASHTREE-PAIRS")
   (:documentation "Purely functional hash-based map structure 
 
 This package provides a purely functional data structure for mapping keys 
@@ -53,12 +53,12 @@ by hash trees at all."))
 (defpackage "DARTS.LIB.PTREE"
   (:use "COMMON-LISP")
   (:export "PTREE" "PTREEP" "+EMPTY-PTREE+" "PTREE-EMPTY-P" "PTREE-KEY"
-		   "PTREE-VALUE" "PTREE-SIZE" "PTREE-GET" "PTREE-INSERT" "PTREE-LEFT"
-		   "PTREE-RIGHT" "PTREE-MINIMUM" "PTREE-MAXIMUM" "PTREE-SMALLEST"
-		   "PTREE-LARGEST" "PTREE-REMOVE" "PTREE-MAP" "PTREE-UPDATE"
-		   "PTREE-UNION" "PTREE-INTERSECTION" "PTREE-DIFFERENCE" "PTREE-EQUAL"
-		   "PTREE-ITERATOR" "PTREE-FIND" "PTREE-FOLD" "PTREE-VALUES" "PTREE-KEYS"
-		   "PTREE-PAIRS")
+           "PTREE-VALUE" "PTREE-SIZE" "PTREE-GET" "PTREE-INSERT" "PTREE-LEFT"
+           "PTREE-RIGHT" "PTREE-MINIMUM" "PTREE-MAXIMUM" "PTREE-SMALLEST"
+           "PTREE-LARGEST" "PTREE-REMOVE" "PTREE-MAP" "PTREE-UPDATE"
+           "PTREE-UNION" "PTREE-INTERSECTION" "PTREE-DIFFERENCE" "PTREE-EQUAL"
+           "PTREE-ITERATOR" "PTREE-FIND" "PTREE-FOLD" "PTREE-VALUES" "PTREE-KEYS"
+           "PTREE-PAIRS")
   (:documentation "Provides a simple binary search tree implementation, 
 which uses strings as keys. The tree is balanced. This code is based on the
 paper Implementing Sets Efficiently in a Functional Language by S. Adams.

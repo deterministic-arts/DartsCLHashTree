@@ -39,6 +39,6 @@
   :components
   ((:module :src
     :components
-	((:file "packages") 
-	 (:file "hamt" :depends-on ("packages"))
-	 (:file "ptree" :depends-on ("packages"))))))
+    ((:file "packages") 
+     (:file "hamt" :depends-on ("packages"))
+     (:file "ptree" :depends-on ("packages"))))))
