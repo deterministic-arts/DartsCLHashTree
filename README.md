@@ -85,3 +85,37 @@ function is `sxhash`.
   new value `value`.
 
 - `hashtree-fold function seed tree` => `value`
+
+
+Property Trees
+---------------
+
+A property tree is a weight-balanced binary search tree. Right now, the
+implementation only supports string designators as keys. The algorithms
+are easily generalizable, but I could not yet decide on an interface for
+that, and string keys were the only ones, I needed up to now.
+
+- `ptreep value` => `flag`
+- `empty-ptree-p tree` => `flag`
+- `ptree-size tree` => `integer`
+- `ptree-key tree` => `value`
+- `ptree-value tree` => `value`
+- `ptree-left tree` => `ptree`
+- `ptree-right tree` => `ptree`
+- `ptree-minimum tree` => `ptree`
+- `ptree-maximum tree` => `ptree`
+- `ptree-smallest key tree` => `ptree`
+- `ptree-largest key tree` => `ptree`
+- `ptree-get key tree &optional default` => `value`, `flag`
+- `ptree-remove key tree` => `ptree`, `flag`
+- `ptree-map function tree &key direction collectp start end` => `value`
+- `ptree-fold function seed tree &key direction start end` => `value`
+- `ptree-pairs tree` => `list`
+- `ptree-keys tree` => `list`
+- `ptree-values tree` => `list`
+- `ptree-intersection tree1 tree2` => `ptree`
+- `ptree-union tree1 tree2` => `ptree`
+- `ptree-difference tree1 tree2` => `ptree`
+- `ptree-iterator tree` => `function`
+- `ptree-equal tree1 tree2` => `boolean`
+- `ptree &rest pairs` => `ptree`
