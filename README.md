@@ -141,5 +141,5 @@ Future Plans
   comparison predicates
 
 - Homogenization of the hashtree and ptree interfaces (e.g., `ptree-update`
-  va. `ptree-insert` vs. `hashtree-update`)
+  vs. `ptree-insert` vs. `hashtree-update`)
 
