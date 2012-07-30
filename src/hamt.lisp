@@ -107,7 +107,7 @@ argument. The result of this function is undefined."
 
 (defun hashtree-values (map)
   (hashtree-fold
-    (lambda (key value list) (declare (ignore value)) (cons value list))
+    (lambda (key value list) (declare (ignore key)) (cons value list))
     nil
     map))
 
@@ -309,3 +309,47 @@ argument. The result of this function is undefined."
         (values (%make-hashtree control new-root)
                 added)))))
                  
+
+(defmacro define-hashtree-constructor (name &key (test '#'eql) (hash '#'sxhash))
+  (let ((control (gensym "HASHTREE-CONTROLLER-")))
+    `(progn
+       (defparameter ,control (make-hash-control ,test ,hash))
+       (defun ,name (&rest args)
+         (loop
+            :with tree := (%make-hashtree ,control)
+            :for link :on args :by #'cddr
+            :for key := (car link)
+            :for value := (cadr link)
+            :do (setf tree (hashtree-update key value tree))
+            :finally (return tree)))
+       ',name)))
+
+
+(defparameter *simple-hashtree-controller*
+  (make-hash-control #'eql #'sxhash))
+
+(defun hashtree (&rest args)
+  "hashtree &rest ARGS => TREE
+
+Constructs a new hash tree using the default test and hash function
+pair (i.e., eql and sxhash). Remaining arguments are used to initialize
+the new hash tree; an even number of arguments must be supplied. The 
+arguments on positions 2k (with k = 0, 1, ...) are taken as the keys
+and the values at positions 2k + 1 (with k = 0, 1, ...) are used as
+the associated values.
+
+Example:
+
+  (hashtree-get 2 (hashtree 1 :one 2 :two 3 :three))
+  ==> :TWO 
+  ==> T
+
+This function is provided as convenience constructor for hash trees
+using the standard hash control functions."
+  (loop
+     :with tree := (%make-hashtree *simple-hashtree-controller*)
+     :for link :on args :by #'cddr
+     :for key := (car link)
+     :for value := (cadr link)
+     :do (setf tree (hashtree-update key value tree))
+     :finally (return tree)))

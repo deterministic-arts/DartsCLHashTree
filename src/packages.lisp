@@ -26,7 +26,8 @@
   (:export "MAKE-HASHTREE" "HASHTREE-GET" "HASHTREE-UPDATE" "HASHTREE-REMOVE"
            "HASHTREE-MAP" "HASHTREE-COUNT" "HASHTREE-TEST" "HASHTREE-HASH"
            "HASHTREE-EMPTY-P" "HASHTREEP" "HASHTREE-FOLD" "DO-HASHTREE"
-           "HASHTREE-KEYS" "HASHTREE-VALUES" "HASHTREE-PAIRS")
+           "HASHTREE-KEYS" "HASHTREE-VALUES" "HASHTREE-PAIRS"
+           "DEFINE-HASHTREE-CONSTRUCTOR" "HASHTREE")
   (:documentation "Purely functional hash-based map structure 
 
 This package provides a purely functional data structure for mapping keys 
