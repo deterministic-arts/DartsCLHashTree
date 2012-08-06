@@ -311,12 +311,14 @@ argument. The result of this function is undefined."
                  
 
 (defmacro define-hashtree-constructor (name &key (test '#'eql) (hash '#'sxhash))
-  (let ((control (gensym "HASHTREE-CONTROLLER-")))
+  (let ((control (gensym "HASHTREE-CONTROLLER-"))
+        (empty (gensym "EMPTY-HASHTREE-")))
     `(progn
        (defparameter ,control (make-hash-control ,test ,hash))
+       (defparameter ,empty (%make-hashtree ,control))
        (defun ,name (&rest args)
          (loop
-            :with tree := (%make-hashtree ,control)
+            :with tree := ,empty
             :for link :on args :by #'cddr
             :for key := (car link)
             :for value := (cadr link)
@@ -327,6 +329,9 @@ argument. The result of this function is undefined."
 
 (defparameter *simple-hashtree-controller*
   (make-hash-control #'eql #'sxhash))
+
+(defparameter *simple-empty-hashtree*
+  (%make-hashtree *simple-hashtree-controller*))
 
 (defun hashtree (&rest args)
   "hashtree &rest ARGS => TREE
@@ -347,7 +352,7 @@ Example:
 This function is provided as convenience constructor for hash trees
 using the standard hash control functions."
   (loop
-     :with tree := (%make-hashtree *simple-hashtree-controller*)
+     :with tree := *simple-empty-hashtree*
      :for link :on args :by #'cddr
      :for key := (car link)
      :for value := (cadr link)
