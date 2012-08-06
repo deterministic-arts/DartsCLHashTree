@@ -51,9 +51,10 @@
 (defstruct (hash-control
              (:copier nil)
              (:predicate hash-control-p)
-             (:constructor make-hash-control (test hash)))
+             (:constructor %make-hash-control (test hash)))
   (test (error "missing equality test") :read-only t)
-  (hash (error "missing hash function") :read-only t))
+  (hash (error "missing hash function") :read-only t)
+  (%empty nil))
 
 (defstruct (hashtree 
              (:copier nil)
@@ -62,6 +63,11 @@
   (control (error "missing hash control (bug)") :read-only t)
   (node (error "missing root node (bug)") :read-only t))
 
+
+(defun make-hash-control (test hash)
+  (let ((control (%make-hash-control test hash)))
+    (setf (hash-control-%empty control) (%make-hashtree control))
+    control))
 
 (defmethod print-object ((ob hashtree) stream)
   (print-unreadable-object (ob stream :type t)
@@ -76,7 +82,7 @@
 as the value of the :test parameter as its equality test predicate, and
 the value passed as :hash as its hash function. If omitted, the default
 equality test is eql, and the default hash function is sxhash."
-  (%make-hashtree (make-hash-control test hash)))
+  (hash-control-%empty (make-hash-control test hash)))
 
 
 (defun hashtree-map (function map)
@@ -242,7 +248,9 @@ argument. The result of this function is undefined."
              (new-root (hunt-down old-root (compute-hash key hash))))
         (if (eq old-root new-root) 
             (values map nil)
-            (values (%make-hashtree control new-root) t))))))
+            (if (emptyp new-root)
+                (values (hash-control-%empty control) t)
+                (values (%make-hashtree control new-root) t)))))))
 
 
 (defun hashtree-update (key value map)
@@ -315,10 +323,9 @@ argument. The result of this function is undefined."
         (empty (gensym "EMPTY-HASHTREE-")))
     `(progn
        (defparameter ,control (make-hash-control ,test ,hash))
-       (defparameter ,empty (%make-hashtree ,control))
        (defun ,name (&rest args)
          (loop
-            :with tree := ,empty
+            :with tree := (hash-control-%empty ,control)
             :for link :on args :by #'cddr
             :for key := (car link)
             :for value := (cadr link)
@@ -329,9 +336,6 @@ argument. The result of this function is undefined."
 
 (defparameter *simple-hashtree-controller*
   (make-hash-control #'eql #'sxhash))
-
-(defparameter *simple-empty-hashtree*
-  (%make-hashtree *simple-hashtree-controller*))
 
 (defun hashtree (&rest args)
   "hashtree &rest ARGS => TREE
@@ -352,7 +356,7 @@ Example:
 This function is provided as convenience constructor for hash trees
 using the standard hash control functions."
   (loop
-     :with tree := *simple-empty-hashtree*
+     :with tree := (hash-control-%empty *simple-hashtree-controller*)
      :for link :on args :by #'cddr
      :for key := (car link)
      :for value := (cadr link)
