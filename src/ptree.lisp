@@ -334,9 +334,10 @@
                    &key (direction :forward have-dir) 
                         (start nil have-start)
                         (end nil have-end))
-  (let ((value seed))
+  (let ((value initial-value))
     (apply #'ptree-map 
-           (lambda (node) (setf value (funcall node value)))
+           (lambda (node) (setf value (funcall function node value)))
+           tree
            (nconc (when have-dir (list :direction direction))
                   (when have-start (list :start start))
                   (when have-end (list :end end))))
