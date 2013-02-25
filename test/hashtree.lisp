@@ -41,9 +41,9 @@
 
 (in-root-suite)
 
-(defsuite hashtree-test)
+(defsuite hashtree-test-suite)
 
-(in-suite hashtree-test)
+(in-suite hashtree-test-suite)
 
 (deftest empty-tree-properties ()
   (let ((tree (make-hashtree)))
@@ -59,7 +59,6 @@
          (iterations 1000)
          (reference (make-hash-table :test 'equal))
          (random (make-random-state t))
-         (missing (cons 'missing 'element))
          (tree (loop
                   :with tree := (make-hashtree)
                   :for count :downfrom iterations :above 0
@@ -105,6 +104,7 @@
                   :finally (return tree))))
     (let* ((keys-seen (hashtree-fold (lambda (key value keys-seen)
                                       (let ((expected-value (gethash key reference missing)))
+                                        (is (= value expected-value))
                                         (cons key keys-seen)))
                                     ()
                                     tree))

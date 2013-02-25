@@ -76,13 +76,6 @@ hash function is `sxhash`."
     (setf (hash-control-%empty control) (%make-hashtree control))
     control))
 
-(defmethod print-object ((ob hashtree) stream)
-  (print-unreadable-object (ob stream :type t)
-    (format stream "~S ~S ~S ~S ~S ~D"
-       :test (hash-control-test (hashtree-control ob))
-       :hash (hash-control-hash (hashtree-control ob))
-       :count (hashtree-count ob))))
-
 
 (defun make-hashtree (&key (test #'eql) (hash #'sxhash))
   "Creates a new hash tree. The hash tree will use the function supplied
@@ -90,17 +83,6 @@ as the value of the :test parameter as its equality test predicate, and
 the value passed as :hash as its hash function. If omitted, the default
 equality test is eql, and the default hash function is sxhash."
   (hash-control-%empty (make-hash-control test hash)))
-
-
-(defun hashtree-map (function map)
-  "Maps a function across all elements in a hashtree. This function applies
-FUNCTION to each element in MAP; FUNCTION must accept two arguments and will
-be called with an element's key as first, and its associated value as second
-argument. The result of this function is undefined. 
-
-Note, that the order, in which this function visits the key/value pairs in
-MAP, is undefined."
-  (hashtree-fold #'(lambda (key value unused) (funcall function key value) unused) nil map))
 
 
 (defun hashtree-fold (function initial-value map)
@@ -124,6 +106,17 @@ MAP, is undefined."
            (subtable (reduce #'walk (subtable-vector node) :initial-value seed))
            (leaf (reduce #'invoke (leaf-buckets node) :initial-value seed)))))
     (walk initial-value (hashtree-node map))))
+
+
+(defun hashtree-map (function map)
+  "Maps a function across all elements in a hashtree. This function applies
+FUNCTION to each element in MAP; FUNCTION must accept two arguments and will
+be called with an element's key as first, and its associated value as second
+argument. The result of this function is undefined. 
+
+Note, that the order, in which this function visits the key/value pairs in
+MAP, is undefined."
+  (hashtree-fold #'(lambda (key value unused) (funcall function key value) unused) nil map))
 
 
 (defun hashtree-keys (map)
@@ -176,6 +169,14 @@ pairs in MAP."
     (lambda (key value count) (declare (ignore key value)) (1+ count))
     0 
     map))
+
+
+(defmethod print-object ((ob hashtree) stream)
+  (print-unreadable-object (ob stream :type t)
+    (format stream "~S ~S ~S ~S ~S ~D"
+       :test (hash-control-test (hashtree-control ob))
+       :hash (hash-control-hash (hashtree-control ob))
+       :count (hashtree-count ob))))
 
 
 (defun hashtree-test (map)
