@@ -1,6 +1,6 @@
 #|                                           -*- mode: lisp; coding: utf-8 -*-
   Deterministic Arts -- Hash Tree
-  Copyright (c) 2012 Dirk Esser
+  Copyright (c) 2013 Dirk Esser
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -41,9 +41,9 @@
 
 (in-root-suite)
 
-(defsuite hashtree)
+(defsuite hashtree-test)
 
-(in-suite hashtree)
+(in-suite hashtree-test)
 
 (deftest empty-tree-properties ()
   (let ((tree (make-hashtree)))
@@ -90,6 +90,8 @@
                   :for found := (hashtree-get key tree)
                   :counting (not (equal value found)))))))
 
+
+
 (deftest tree-iteration ()
   (let* ((reference (make-hash-table :test 'equal))
          (random (make-random-state t))
@@ -114,3 +116,29 @@
       (is (= (hash-table-count reference) (length sorted-keys-seen)))
       (is (sorted-keys-unique-p sorted-keys-seen))
       (is (equal sorted-expected-keys sorted-keys-seen)))))
+
+
+(deftest tree-iteration-2 ()
+  (let* ((reference (make-hash-table :test 'equal))
+         (random (make-random-state t))
+         (missing (cons 'missing 'element))
+         (tree (loop
+                  :with tree := (make-hashtree)
+                  :for count :downfrom 1000 :above 0
+                  :for key := (random 100000 random)
+                  :for value := (incf (gethash key reference 0))
+                  :do (setf tree (hashtree-update key value tree))
+                  :finally (return tree))))
+    (let ((visited 0))
+      (do-hashtree (key value) tree
+        (incf visited)
+        (multiple-value-bind (ref-value found) (gethash key reference missing)
+          (is (not (eq ref-value missing)))
+          (is found)
+          (is (= value ref-value))))
+      (is (= visited (hash-table-count reference))))
+    ;; Unless the iteration is stopped via `return` from the implicit
+    ;; anonymous block, the result is `nil`.
+    (is (not (do-hashtree (key value) tree (cons key value))))
+    ;; FIXME: we need a few tests for the block stuff here!
+    nil))
