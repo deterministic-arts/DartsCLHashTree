@@ -116,6 +116,7 @@ argument. The result of this function is undefined.
 
 Note, that the order, in which this function visits the key/value pairs in
 MAP, is undefined."
+  (declare (dynamic-extent function))
   (hashtree-fold #'(lambda (key value unused) (funcall function key value) unused) nil map))
 
 
@@ -207,6 +208,7 @@ pairs in MAP."
 no matching association exists, returns DEFAULT instead. This function
 returns as secondary value a boolean, which indicates, whether a
 matching key/value pair was found (T) or not (NIL)."
+  (declare (optimize (speed 3) (debug 0)))
   (let ((root (hashtree-node map)))
     (if (emptyp root) 
         (values default nil)
@@ -216,6 +218,7 @@ matching key/value pair was found (T) or not (NIL)."
                (full-hash (compute-hash key hash)))
           (labels
               ((lookup (node code)
+                 (declare (optimize (speed 3) (debug 0)))
                  (etypecase node
                    (empty (values default nil))
                    (leaf 
@@ -249,7 +252,7 @@ the resulting value will be equivalent to MAP.
 This function returns as a secondary value a boolean flag, which
 indicates, whether KEY was found and subsequently removed (T) or
 not (NIL)."
-
+  (declare (optimize (speed 3) (debug 0)))
   (let* ((control (hashtree-control map))
          (test (hash-control-test control))
          (hash (hash-control-hash control)))
@@ -325,6 +328,7 @@ value. The secondary value is one of
 
   :added     there was no previous association of KEY in MAP
   :replaced  a former association of KEY has been replaced."
+  (declare (optimize (speed 3) (debug 0)))
   (let* ((control (hashtree-control map))
          (test (hash-control-test control))
          (hash (hash-control-hash control)))
