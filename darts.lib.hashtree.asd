@@ -31,7 +31,7 @@
   :name "darts.lib.hashtree"
   :author "Dirk Esser"
   :version "0.1"
-  :maintainer "Dirk Eßer"
+  :maintainer "Dirk Esser"
   :licence "MIT"
   :description "Provides a few purely functional data structures"
   :long-description ""
