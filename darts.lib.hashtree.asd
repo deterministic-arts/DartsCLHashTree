@@ -39,6 +39,7 @@
   :components
   ((:module :src
     :components
-    ((:file "packages") 
-     (:file "hamt" :depends-on ("packages"))
+    ((:file "packages")
+     (:file "special-hamt" :depends-on ("packages"))
+     #-no-darts.lib.hashtree1-compatibility (:file "hamt" :depends-on ("special-hamt"))
      (:file "ptree" :depends-on ("packages"))))))

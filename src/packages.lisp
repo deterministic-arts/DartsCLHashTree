@@ -21,13 +21,28 @@
   THE SOFTWARE.
 |#
 
-(defpackage "DARTS.LIB.HASHTREE"
+
+(defpackage "DARTS.LIB.HASHTRIE"
   (:use "COMMON-LISP")
-  (:export "MAKE-HASHTREE" "HASHTREE-GET" "HASHTREE-UPDATE" "HASHTREE-REMOVE"
-           "HASHTREE-MAP" "HASHTREE-COUNT" "HASHTREE-TEST" "HASHTREE-HASH"
-           "HASHTREE-EMPTY-P" "HASHTREEP" "HASHTREE-FOLD" "DO-HASHTREE"
-           "HASHTREE-KEYS" "HASHTREE-VALUES" "HASHTREE-PAIRS"
-           "DEFINE-HASHTREE-CONSTRUCTOR" "HASHTREE")
+  (:export 
+    "HASHTRIEP" "HASHTRIE-EMPTY-P" "HASHTRIE-FOLD" "HASHTRIE-MAP" 
+    "HASHTRIE-COUNT" "DEFINE-HASHTRIE" "HASHTRIE-CONTROL" "HASHTRIE-GET" 
+    "HASHTRIE-UPDATE" "HASHTRIE-REMOVE" "DO-HASHTRIE" "HASHTRIE-KEYS"
+    "HASHTRIE-VALUES" "HASHTRIE-PAIRS" "SIMPLE-HASHTRIE" "SIMPLE-HASHTRIE-GET" 
+    "SIMPLE-HASHTRIE-UPDATE" "SIMPLE-HASHTRIE-REMOVE")
+
+  ;; The following stuff is deprecated. It is provided here for
+  ;; compatibility with previous versions of this library
+
+  #-no-darts.lib.hashtree1-compatibility
+
+  (:export
+    "MAKE-HASHTREE" "HASHTREE-GET" "HASHTREE-UPDATE" "HASHTREE-REMOVE"
+    "HASHTREE-MAP" "HASHTREE-COUNT" "HASHTREE-TEST" "HASHTREE-HASH"
+    "HASHTREE-EMPTY-P" "HASHTREEP" "HASHTREE-FOLD" "DO-HASHTREE"
+    "HASHTREE-KEYS" "HASHTREE-VALUES" "HASHTREE-PAIRS"
+    "DEFINE-HASHTREE-CONSTRUCTOR" "HASHTREE")
+  
   (:documentation "Purely functional hash-based map structure 
 
 This package provides a purely functional data structure for mapping keys 
@@ -51,6 +66,18 @@ many Lisp implementations provide weak hash tables, which is not supported
 by hash trees at all."))
 
 
+#-no-darts.lib.hashtree1-compatibility
+(defpackage "DARTS.LIB.HASHTREE"
+  (:use "COMMON-LISP" "DARTS.LIB.HASHTRIE")
+  (:export "MAKE-HASHTREE" "HASHTREE-GET" "HASHTREE-UPDATE" "HASHTREE-REMOVE"
+           "HASHTREE-MAP" "HASHTREE-COUNT" "HASHTREE-TEST" "HASHTREE-HASH"
+           "HASHTREE-EMPTY-P" "HASHTREEP" "HASHTREE-FOLD" "DO-HASHTREE"
+           "HASHTREE-KEYS" "HASHTREE-VALUES" "HASHTREE-PAIRS"
+           "DEFINE-HASHTREE-CONSTRUCTOR" "HASHTREE")
+  (:documentation "Compatibility interface. Note that everything in this
+package is deprecated."))
+
+
 (defpackage "DARTS.LIB.PTREE"
   (:use "COMMON-LISP")
   (:export "PTREE" "PTREEP" "+EMPTY-PTREE+" "PTREE-EMPTY-P" "PTREE-KEY"
@@ -65,3 +92,4 @@ which uses strings as keys. The tree is balanced. This code is based on the
 paper Implementing Sets Efficiently in a Functional Language by S. Adams.
 Short of renaming a few things and adapting the code to Common Lisp, the
 algorithms presented there were used pretty much as-is."))
+

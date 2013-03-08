@@ -21,32 +21,8 @@
   THE SOFTWARE.
 |#
 
-(in-package "DARTS.LIB.HASHTREE")
+(in-package "DARTS.LIB.HASHTRIE")
 
-(defstruct (node 
-             (:copier nil)))
-
-(defstruct (empty
-             (:include node)
-             (:predicate emptyp)
-             (:copier nil)))
-
-(defparameter +empty+ (make-empty))
-
-(defstruct (leaf 
-             (:include node)
-             (:constructor make-leaf (hash buckets)))
-  (hash 0 :type (unsigned-byte 32) :read-only t)
-  (buckets () :type list :read-only t))
-    
-(defstruct (subtable
-             (:include node)
-             (:constructor make-subtable (mask vector)))
-  (mask 0 :type (unsigned-byte 32) :read-only t)
-  (vector '#() :type (vector node) :read-only t))
-
-(defparameter +root+
-  (make-subtable 0 '#()))
 
 (defstruct (hash-control
              (:copier nil)
@@ -59,9 +35,10 @@
 (defstruct (hashtree 
              (:copier nil)
              (:predicate hashtreep)
-             (:constructor %make-hashtree (control &optional (node +empty+))))
+             (:constructor %make-hashtree (control node)))
   (control (error "missing hash control (bug)") :read-only t)
-  (node (error "missing root node (bug)") :read-only t))
+  (node nil :read-only t))
+
 
 
 (defun make-hash-control (test hash)
@@ -73,7 +50,7 @@ function has the signature `(lambda (x) ...) => integer`. It is called
 in order to compute a hash value for the given value `x`. The default
 hash function is `sxhash`."
   (let ((control (%make-hash-control test hash)))
-    (setf (hash-control-%empty control) (%make-hashtree control))
+    (setf (hash-control-%empty control) (%make-hashtree control (make-node 0 ())))
     control))
 
 
@@ -97,15 +74,7 @@ If MAP is the empty tree, then this function returns INITIAL-VALUE.
 Note, that the order, in which this function visits the key/value pairs in
 MAP, is undefined."
   (declare (dynamic-extent function))
-  (labels
-      ((invoke (seed pair)
-         (funcall function (car pair) (cdr pair) seed))
-       (walk (seed node)
-         (etypecase node
-           (empty seed)
-           (subtable (reduce #'walk (subtable-vector node) :initial-value seed))
-           (leaf (reduce #'invoke (leaf-buckets node) :initial-value seed)))))
-    (walk initial-value (hashtree-node map))))
+  (hashtrie-fold initial-value (lambda (x y z) (funcall function y z x)) (hashtree-node map)))
 
 
 (defun hashtree-map (function map)
@@ -117,7 +86,7 @@ argument. The result of this function is undefined.
 Note, that the order, in which this function visits the key/value pairs in
 MAP, is undefined."
   (declare (dynamic-extent function))
-  (hashtree-fold #'(lambda (key value unused) (funcall function key value) unused) nil map))
+  (hashtrie-map function (hashtree-node map)))
 
 
 (defun hashtree-keys (map)
@@ -166,10 +135,7 @@ an explicit result value is specified in BODY by doing a `return`."
   "Counts the number of entries in a hash tree. Note, that this function
 has a runtime complexity of `O(n)`, with `n` being the number of key/value
 pairs in MAP."
-  (hashtree-fold
-    (lambda (key value count) (declare (ignore key value)) (1+ count))
-    0 
-    map))
+  (hashtrie-count (hashtree-node map)))
 
 
 (defmethod print-object ((ob hashtree) stream)
@@ -192,15 +158,15 @@ pairs in MAP."
 
 (defun hashtree-empty-p (map)
   "Tests, whether the given hash tree MAP is empty."
-  (emptyp (hashtree-node map)))
+  (darts.lib.hashtrie::node-empty-p (hashtree-node map)))
 
 
-(declaim (ftype (function (t function) (values (unsigned-byte 32))) compute-hash)
-         (inline compute-hash))
+;; (declaim (ftype (function (t function) (values (unsigned-byte 32))) compute-hash)
+;;         (inline compute-hash))
 
-(defun compute-hash (value fn)
-  (the (unsigned-byte 32) 
-    (logand #xffffffff (funcall fn value))))
+;; (defun compute-hash (value fn)
+;;  (the (unsigned-byte 32) 
+;;    (logand #xffffffff (funcall fn value))))
 
 
 (defun hashtree-get (key map &optional default)
@@ -208,38 +174,11 @@ pairs in MAP."
 no matching association exists, returns DEFAULT instead. This function
 returns as secondary value a boolean, which indicates, whether a
 matching key/value pair was found (T) or not (NIL)."
-  (declare (optimize (speed 3) (debug 0)))
-  (let ((root (hashtree-node map)))
-    (if (emptyp root) 
-        (values default nil)
-        (let* ((control (hashtree-control map))
-               (test (hash-control-test control))
-               (hash (hash-control-hash control))
-               (full-hash (compute-hash key hash)))
-          (labels
-              ((lookup (node code)
-                 (declare (optimize (speed 3) (debug 0)))
-                 (etypecase node
-                   (empty (values default nil))
-                   (leaf 
-                    (if (/= code (leaf-hash node))
-                        (values default nil)
-                        (loop 
-                           :for (k . v) :in (leaf-buckets node)
-                           :when (funcall test k key)
-                           :do (return (values v t))
-                           :finally (return (values default nil)))))
-                   (subtable 
-                    (let* ((nx (logand code #b11111))
-                           (bt (ash 1 nx))
-                           (tm (subtable-mask node)))
-                      (if (zerop (logand tm bt))
-                          (values default nil)
-                          (let* ((emask (- bt 1))
-                                 (count (logcount (logand emask tm))))
-                            (lookup (aref (subtable-vector node) count) 
-                                    (ash code -5)))))))))
-            (lookup root full-hash))))))
+  (let ((ctl (hashtree-control map)))
+    (hashtrie-get* key (hashtree-node map)
+                   (hash-control-hash ctl)
+                   (hash-control-test ctl)
+                   default)))
 
 
 (defun hashtree-remove (key map)
@@ -252,72 +191,17 @@ the resulting value will be equivalent to MAP.
 This function returns as a secondary value a boolean flag, which
 indicates, whether KEY was found and subsequently removed (T) or
 not (NIL)."
-  (declare (optimize (speed 3) (debug 0)))
-  (let* ((control (hashtree-control map))
-         (test (hash-control-test control))
-         (hash (hash-control-hash control)))
-    (labels
-        ((copy-except (position table-vector)
-           (let* ((new-length (- (length table-vector) 1))
-                  (new-vector (make-array new-length)))
-             (loop
-                :for k :upfrom 0 :below position
-                :do (setf (aref new-vector k) (aref table-vector k)))
-             (loop
-                :for k :upfrom position :below new-length
-                :do (setf (aref new-vector k) (aref table-vector (1+ k))))
-             new-vector))
-         (copy-replace (position table-vector element)
-           (let* ((length (length table-vector))
-                  (new-vector (make-array length)))
-             (loop
-                :for k :upfrom 0 :below position
-                :do (setf (aref new-vector k) (aref table-vector k)))
-             (setf (aref new-vector position) element)
-             (loop
-                :for k :upfrom (1+ position) :below length
-                :do (setf (aref new-vector k) (aref table-vector k)))
-             new-vector))
-         (hunt-down (node code)
-           (etypecase node
-             (empty node)
-             (leaf 
-               (if (/= code (leaf-hash node))
-                   node
-                   (let* ((old-list (leaf-buckets node))
-                          (pair (assoc key old-list :test test)))
-                     (if (not pair) 
-                         node
-                         (let ((new-list (remove pair old-list :test #'eq)))
-                           (if (null new-list)
-                               +empty+
-                               (make-leaf (leaf-hash node) new-list)))))))
-             (subtable 
-               (let* ((index (logand code #b11111))
-                      (bit (ash 1 index))
-                      (table-mask (subtable-mask node)))
-                 (if (zerop (logand bit table-mask))
-                     node
-                     (let* ((dispatch (logcount (logand table-mask (- bit 1))))
-                            (table-vector (subtable-vector node))
-                            (old-child (aref table-vector dispatch))
-                            (new-child (hunt-down old-child (ash code -5))))
-                       (cond 
-                         ((eq old-child new-child) node)
-                         ((not (emptyp new-child)) 
-                          (let ((new-vector (copy-replace dispatch table-vector new-child)))
-                            (make-subtable table-mask new-vector)))
-                         ((= (length table-vector) 1) +empty+)
-                         (t (let* ((new-mask (logand table-mask (lognot bit)))
-                                   (new-vector (copy-except dispatch table-vector)))
-                              (make-subtable new-mask new-vector)))))))))))
-      (let* ((old-root (hashtree-node map))
-             (new-root (hunt-down old-root (compute-hash key hash))))
-        (if (eq old-root new-root) 
-            (values map nil)
-            (if (emptyp new-root)
-                (values (hash-control-%empty control) t)
-                (values (%make-hashtree control new-root) t)))))))
+  (let ((ctl (hashtree-control map)))
+    (multiple-value-bind (new-node old-value found)
+        (hashtrie-remove* key (hashtree-node map)
+           (hashtree-node (hash-control-%empty ctl))
+           #'make-node
+           (hash-control-hash ctl)
+           (hash-control-test ctl))
+      (declare (ignore old-value))
+      (if (not found) 
+          (values map nil)
+          (values (%make-hashtree ctl new-node) t)))))        
 
 
 (defun hashtree-update (key value map)
@@ -328,69 +212,14 @@ value. The secondary value is one of
 
   :added     there was no previous association of KEY in MAP
   :replaced  a former association of KEY has been replaced."
-  (declare (optimize (speed 3) (debug 0)))
-  (let* ((control (hashtree-control map))
-         (test (hash-control-test control))
-         (hash (hash-control-hash control)))
-    (labels
-        ((extend-leaf (node)
-           (let* ((old-list (leaf-buckets node))
-                  (present (assoc key old-list :test test))
-                  (new-list  (if present
-                                 (substitute (cons key value) present old-list :count 1 :test #'eq)
-                                 (cons (cons key value) old-list))))
-             (values (make-leaf (leaf-hash node) new-list)
-                     (if present :replaced :added))))
-         
-         (split-leaf (node)
-           (let* ((old-code (leaf-hash node))
-                  (old-index (logand old-code #b11111))
-                  (old-bit (ash 1 old-index))
-                  (old-buckets (leaf-buckets node))
-                  (new-code (ash old-code -5))
-                  (new-subtable (make-subtable old-bit (vector (make-leaf new-code old-buckets)))))
-             new-subtable))
-
-         (inject-into (vector position element)
-           (let* ((length (length vector))
-                  (new-vector (make-array (1+ length))))
-             (loop
-                :for k :upfrom 0 :below position
-                :do (setf (aref new-vector k) (aref vector k)))
-             (setf (aref new-vector position) element)
-             (loop
-                :for k :upfrom position :below length
-                :do (setf (aref new-vector (1+ k)) (aref vector k)))
-             new-vector))                 
-
-         (insert (node code)
-           (etypecase node
-             (empty (values (make-leaf code (list (cons key value))) :added))
-             (subtable 
-               (let* ((index (logand #b11111 code))
-                      (bit (ash 1 index))
-                      (table-mask (subtable-mask node))
-                      (table-vector (subtable-vector node)))
-                 (if (zerop (logand table-mask bit))
-                     (let* ((new-item (make-leaf (ash code -5) (list (cons key value))))
-                            (new-mask (logior table-mask bit))
-                            (new-position (logcount (logand new-mask (- bit 1))))
-                            (new-vector (inject-into table-vector new-position new-item)))
-                       (values (make-subtable new-mask new-vector) t))
-                     (let* ((table-index (logcount (logand table-mask (- bit 1))))
-                            (child-node (aref table-vector table-index)))
-                       (multiple-value-bind (new-child added) (insert child-node (ash code -5))
-                         (let ((new-vector (copy-seq table-vector)))
-                           (setf (aref new-vector table-index) new-child)
-                           (values (make-subtable table-mask new-vector) added)))))))
-             (leaf 
-               (if (= code (leaf-hash node))
-                   (extend-leaf node)
-                   (insert (split-leaf node) code))))))
-
-      (multiple-value-bind (new-root added) (insert (hashtree-node map) (compute-hash key hash))
-        (values (%make-hashtree control new-root)
-                added)))))
+  (let ((ctl (hashtree-control map)))
+    (multiple-value-bind (new-node old-value action)
+        (hashtrie-update* key value (hashtree-node map)
+           #'make-node
+           (hash-control-hash ctl)
+           (hash-control-test ctl))
+      (declare (ignore old-value))
+      (values (%make-hashtree ctl new-node) action))))
                  
 
 (defmacro define-hashtree-constructor (name &key (test '#'eql) (hash '#'sxhash))
