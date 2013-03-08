@@ -293,6 +293,7 @@ secondary value is the equality predicate."
 
 
 (defun hashtrie-get* (key tree hash test &optional default)
+  (declare (dynamic-extent hash test))
   (recurr hunt-down ((node tree) 
                      (hash (logand #xffffffff (funcall hash key))))
     (node-type-case node
@@ -327,7 +328,8 @@ or not."
 
 
 (defun hashtrie-update* (key value map make-node hash test)
-  ;;(declare (optimize (speed 3) (debug 0)))
+  (declare (optimize (speed 3) (debug 0))
+           (dynamic-extent hash test))
   (labels
       ((make-node (arg1 arg2) (funcall make-node arg1 arg2))
        (extend-leaf (node)
@@ -398,7 +400,8 @@ a keyword describing what has been done as third value:
 
 
 (defun hashtrie-remove* (key map empty-node make-node hash test)
-  (declare (optimize (speed 3) (debug 0)))
+  (declare (optimize (speed 3) (debug 0)) 
+           (dynamic-extent hash test))
   (labels
       ((copy-except (position table-vector)
          (let* ((new-length (- (length table-vector) 1))

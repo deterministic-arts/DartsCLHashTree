@@ -21,76 +21,63 @@ actually share state with the original tree, to which the
 operation was applied).
 
 
-Hash Tree
+Hash Tries
 ----------
 
-A hash tree is a trie structure indexed by the hash codes of the
-keys. See the paper for details on the algorithm. Hash trees are
-provided by the package `DARTS.LIB.HASHTREE`.
-
-Unlike Common Lisp's built-in hash tables, hash trees can use any
-equivalence predicate and hash function you care to provide. The
-default equivalence predicate is `eql`, and the default hash
+A hash trie is a purely functional data structure, which provides
+a mapping from keys to values using hashing. Unlike Common Lisp's
+standard hash tables, hash tries are immutable. Any operation,
+which changes a hash trie returns a copy. Also, hash tries can 
+use any equivalence predicate and hash function you care to provide. 
+The default equivalence predicate is `eql`, and the default hash
 function is `sxhash`.
 
-- `make-hashtree &key test hash` => `tree` Creates and returns a new
-  hash tree, which uses the given equivalence predicate `test` (defaults 
-  to `eql`) hash function `hash` (defaults to `sxhash`).
+The implementation of hash tries can be found in package `DARTS.LIB.HASHTRIE`.
 
-- `hashtree-count tree` => `number` Returns the number of entries
-  in the given hashtree `tree`
+Defining new hash trie flavours
+................................
 
-- `hashtree-hash tree` => `function` Returns the hash function used
-  by the given hashtree.
+- macro define-hashtrie name &body clauses ... 
 
-- `hashtree-test tree` => `function` Returns the equivalence predicate
-  used by `tree`.
 
-- `hashtree-map function tree` Calls `function` for each entry in
-  `tree`. The function must accept two arguments, the entry's key
-  value as first, and the entry's associated value as second argument.
-  `hashtree-map` always returns `nil`.
+Generic API 1 (works on any hash trie)
+.......................................
 
-- `hashtree-keys tree` => `list` Returns a list containing all key
-  values present in the given `tree`, in no particular order.
+The following functions are defined for any flavour of hash trie. 
 
-- `hashtree-values tree` => `list` Returns a list containing all associated
-  values present in the given `tree`, in no particular order.
+- function hashtriep value => boolean
+- function hashtrie-empty-p trie => boolean
+- function hashtrie-count trie => integer
+- function hashtrie-fold seed function trie => value
+- function hashtrie-map function trie => unspecified
+- function hashtrie-control trie => hash test
 
-- `hashtree-pairs tree` => `list` Returns a list of pairs (`key` . `value`)
-  containing all entries of `tree`.
 
-- `do-hashtree (key value) tree &body body` Iterates over all entries of
-  the hashtree, which is the result of evaluating `tree`. For each entry,
-  binds `key` to the entry's key and `value` to its associated value,
-  then evaluates the forms in `body` as `progn` would do. The result of 
-  this macro is undefined.
+Generic API 2 (works on any hash trie)
+.......................................
 
-- `hashtree-empty-p tree` => `flag` Tests, whether `tree` is empty
+The following functions are defined for any flavour of hash trie; 
+they are, however, not usually used, and will certainly be not as
+efficient as using the versions implicitly defined by 
+`define-hashtrie`:
 
-- `hashtreep value` => `flag` Tests, whether `value` is a hash tree.
+- function hashtrie-get key trie &optional default => value indicator
+- function hashtrie-update key value trie => new-trie old-value indicator
+- function hashtrie-remove key trie => new-trie old-value indicator
 
-- `hashtree-get key tree &optional default` => `value`, `indicator` 
-  Searches for the value associated with `key` in `tree`. If found,
-  returns it as primary result, and `t` as second result. If no 
-  matching entry exists, returns `default` as primary result, and
-  `nil` as the secondary.
 
-- `hashtree-remove key tree` => `new-tree`, `indicator`
-  Removes the entry for `key` from `tree`, returning the resulting new
-  hash tree as primary return value. The secondary return value is a
-  boolean flag indicating, whether a matching entry was found (and
-  removed), or not. 
+Deprecated API
+...............
 
-- `hashtree-update key value tree` => `new-tree`, `action`
-  Inserts a key/value pair or replaces the value in an existing pair
-  in `tree`. Returns the new tree as primary return value. The secondary
-  value is an indicator of what was done by the call. Possible values
-  are `:added` if no matching key was present prior to the call, and
-  `:replaced`, if the value of an existing entry was replaced by the
-  new value `value`.
+All functions and macros with `hashtree` in their name (instead
+of `hashtrie` -- note the i vs e) are deprecated. The new interface
+allows you to do almost anything you could do with the old 
+interface, but more efficiently. The most important omission of
+the new interface is the construction of hash tries on the fly
+at run-time. This is still something, you can only do with the
+old API (or some `EVAL` magic, but that's a path I don't want to
+walk...)
 
-- `hashtree-fold function seed tree` => `value`
 
 
 Property Trees
