@@ -361,6 +361,7 @@ or not."
                 :do (setf (aref new-vector (1+ k)) (aref vector k)))
              new-vector))                 
          (insert (node code)
+           (declare (type (unsigned-byte 32) code))
            (node-type-case node
              (:empty () (values (make-node code (list (cons key value))) :added))
              (:leaf (lhash _)
@@ -426,6 +427,7 @@ a keyword describing what has been done as third value:
            new-vector))
        (make-node (a b) (funcall make-node a b))
        (hunt-down (node code)
+         (declare (type (unsigned-byte 32) code))
          (node-type-case node
            (:empty () (values node nil nil))
            (:leaf (leaf-hash leaf-buckets)
@@ -539,9 +541,9 @@ third value."
                (get-name (if (eq get-name missing) (intern (string-conc conc-name :get)) get-name))
                (update-name (if (eq update-name missing) (intern (string-conc conc-name :update)) update-name))
                (remove-name (if (eq remove-name missing) (intern (string-conc conc-name :remove)) remove-name))
-               (make-node (gensym "MAKE-NODE-"))
+               (make-node (intern (format nil "HashTrie-Dont-Use-MAKE-~A" name)))
                (sconc-name (format nil "HashTrie-Dont-Use-~A-" name))
-               (empty (gensym "EMPTY-NODE-")))
+               (empty (intern (format nil "*HashTrie-Dont-Use-EMPTY-~A*" name))))
           
           (unless constructor-name (bad-syntax "missing constructor function name"))
           (when (eq documentation missing) (setf documentation nil))
