@@ -35,4 +35,5 @@
   ((:module :test
     :components
     ((:file "package") 
-     (:file "hashtree" :depends-on ("package"))))))
+     (:file "hashtree" :depends-on ("package"))
+     (:file "hashtrie-tests" :depends-on ("package"))))))
