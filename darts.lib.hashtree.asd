@@ -42,4 +42,5 @@
     ((:file "packages")
      (:file "special-hamt" :depends-on ("packages"))
      #-no-darts.lib.hashtree1-compatibility (:file "hamt" :depends-on ("special-hamt"))
+     (:file "wbtree" :depends-on ("packages"))
      (:file "ptree" :depends-on ("packages"))))))
