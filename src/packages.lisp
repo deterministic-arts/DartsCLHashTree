@@ -93,3 +93,16 @@ paper Implementing Sets Efficiently in a Functional Language by S. Adams.
 Short of renaming a few things and adapting the code to Common Lisp, the
 algorithms presented there were used pretty much as-is."))
 
+
+(defpackage "DARTS.LIB.WBTREE"
+  (:use "COMMON-LISP")
+  (:export "WBTREE" "WBTREEP" "WBTREE-EMPTY-P" "WBTREE-SIZE" "WBTREE-NODE-VALUE" 
+           "WBTREE-NODE-KEY" "WBTREE-NODE-LEFT-SUBTREE" "WBTREE-NODE-RIGHT-SUBTREE" 
+           "WBTREE-UPDATE" "WBTREE-REMOVE" "WBTREE-MAP" "WBTREE-FIND-NODE" 
+           "WBTREE-FIND" "WBTREE-DIFFERENCE" "WBTREE-UNION" "WBTREE-INTERSECTION" 
+           "WBTREE-ITERATOR" "WBTREE-EQUAL" "DEFINE-WBTREE")
+  (:documentation "Generalized weight-balanced binary search trees. This
+package provides a variant of the weight-balanced binary trees implemented
+in package DARTS.LIB.PTREE. The variant exposed here can be used with arbitrary
+key types, provided, a total order is defined on the keys, for which a suitable
+predicate function (in the sense of #'<) exists."))
