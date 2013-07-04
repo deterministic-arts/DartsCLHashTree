@@ -131,7 +131,7 @@
 (defun wbtree-find (key tree)
   (let ((node (wbtree-find-node key tree)))
     (if node
-        (values (node-value key) node)
+        (values (node-value node) node)
         (values nil nil))))
 
 
@@ -463,7 +463,7 @@
          (conc-name (format nil "~A Do Not Use.." (symbol-name name))))
     `(progn
        (defstruct (,name
-                    (:include node)
+                    (:include wbtree)
                     (:constructor ,constructor (key value left right 
                                                 &optional (count (+ (node-count left) (node-count right) 1))))
                     (:conc-name ,conc-name)))
@@ -477,3 +477,30 @@
             :for (key value) :on pairs :by #'cddr
             :do (setf tree (wbtree-update* key value tree #'eql #',lessp #',constructor ,empty))
             :finally (return tree))))))
+
+
+(defun wbtree-check-invariants (tree)
+  (with-function (lessp (wbtree-information tree))
+    (labels
+        ((recurse (tree)
+           (unless (wbtree-empty-p tree)
+             (with-node (key _ count left right) tree
+               (unless (wbtree-empty-p left)
+                 (let ((left-key (node-key left)))
+                   (unless (lessp left-key key)
+                     (cerror "try remaining nodes" "left child key is >= parent key")))
+                 (recurse left))
+               (unless (wbtree-empty-p right)
+                 (let ((right-key (node-key right)))
+                   (unless (lessp key right-key)
+                     (cerror "try remaining nodes" "right child key is <= parent key")))
+                 (recurse right))
+               (let ((nleft (wbtree-size left))
+                     (nright (wbtree-size right)))
+                 (unless (= count (+ 1 nleft nright))
+                   (cerror "try remaining nodes" "invalid tree size counter"))
+                 (when (> (+ nleft nright) 2)
+                   (unless (or (>= (* +weight+ nleft) nright)
+                               (>= (* +weight+ nright) nleft))
+                     (cerror "try remaining nodes" "weight invariant violated for node"))))))))
+      (recurse tree))))
