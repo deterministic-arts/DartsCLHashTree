@@ -9,6 +9,8 @@
 ;;; - a string-tree is used as index of all defined VAT classes
 ;;; - a timestamp-tree is used in each class to keep track of individual rates
 ;;;
+;;; To spice things up a little bit, we make things thread-safe.
+;;;
 ;;; Stuff demonstrated here:
 ;;;
 ;;; - define-wbtree
@@ -21,18 +23,20 @@
 ;;; in Germany since the 1968ies. No guarantees, though!
 
 #-(and) (ql:quickload "local-time")
+#-(and) (ql:quickload "bordeaux-threads")
 
-(defpackage "TIMETREE"
-  (:use "COMMON-LISP" "DARTS.LIB.WBTREE" "LOCAL-TIME")
+(defpackage "WBTREE-EXAMPLES"
+  (:use "COMMON-LISP" "DARTS.LIB.WBTREE" "LOCAL-TIME" "BORDEAUX-THREADS") 
   (:export))
 
-(in-package "TIMETREE")
+(in-package "WBTREE-EXAMPLES")
 
 (defparameter +date-only-format+ '((:year 4) #\- (:month 2) #\- (:day 2)))
 
 (define-wbtree timestamp-tree timestamp<)
 (define-wbtree string-tree string<)
 
+(defvar *classes-lock* (make-lock "VAT Classes Lock"))
 (defvar *all-classes* (string-tree))
 
 (defclass vat-class ()
@@ -69,24 +73,71 @@
             (vat-rate-value object))))
 
 
-(defun add-vat-class (name)
-  (let ((present (wbtree-find name *all-classes*)))
-    (if present
-        (error "there is already a VAT class named ~S" name)
-        (let ((class (make-instance 'vat-class :name name)))
-          (setf *all-classes* (wbtree-update name class *all-classes*))
-          class))))
+;;; On implementations, which have CAS support, this could actually be
+;;; done event better. We fake CAS here using a global lock.
 
 
-(defun add-vat-rate (value valid-from class)
-  (let* ((rates (vat-class-rates class))
-         (present (wbtree-find valid-from rates)))
-    (if present
-        (error "there is already a rate valid-from ~S in ~S" valid-from class)
-        (let ((rate (make-instance 'vat-rate :class class :valid-from valid-from :value value)))
-          (setf (vat-class-rates class) (wbtree-update valid-from rate rates))
-          rate))))
+(defun compare-and-set-vat-classes (old-classes new-classes)
+  (with-lock-held (*classes-lock*)
+    (and (eq old-classes *all-classes*)
+         (progn (setf *all-classes* new-classes) t))))
 
+
+(defun all-vat-classes ()
+  (with-lock-held (*classes-lock*)
+    *all-classes*))
+        
+
+(defun define-vat-class* (name rates &key (if-exists :supersede) (if-does-not-exist :create))
+  (labels ((parse-time (value)
+             (etypecase value
+               (timestamp value)
+               (string (parse-timestring value))))
+           (parse-rate (spec)
+             (destructuring-bind (valid-from* . value) spec
+               (make-instance 'vat-rate :valid-from (parse-time valid-from*) :value value)))
+           (copy-with-new-rates (class list)
+             (loop
+                :with seed := (timestamp-tree) 
+                  :and new-class := (make-instance 'vat-class :name (vat-class-name class))
+                :for rate :in list
+                  :do (setf (slot-value rate 'class) new-class)
+                      (setf seed (wbtree-update (vat-rate-valid-from rate) rate seed))
+                :finally (setf (slot-value new-class 'rates) seed)
+                         (return new-class)))
+           (create-with-new-rates (list)
+             (loop
+                :with seed := (timestamp-tree) 
+                  :and new-class := (make-instance 'vat-class :name name)
+                :for rate :in list
+                  :do (setf (slot-value rate 'class) new-class)
+                      (setf seed (wbtree-update (vat-rate-valid-from rate) rate seed))
+                :finally (setf (slot-value new-class 'rates) seed)
+                         (return new-class))))
+    (let ((name (string name))
+          (rates (mapcar #'parse-rate rates)))
+      (loop
+         :named define
+         :do (let* ((all-classes (all-vat-classes))
+                    (present (wbtree-find name all-classes)))
+               (if present
+                   (ecase if-exists
+                     ((:error) (error "a VAT class ~S already exists" name))
+                     ((:ignore) (return-from define (values present nil)))
+                     ((:supersede) 
+                      (let* ((new-class (copy-with-new-rates present rates))
+                             (new-class-tree (wbtree-update name new-class all-classes)))
+                        (when (compare-and-set-vat-classes all-classes new-class-tree)
+                          (return-from define (values new-class :replaced))))))
+                   (ecase if-does-not-exist
+                     ((:error) (error "there is no VAT class ~S" name))
+                     ((:ignore) (return-from define (values nil nil)))
+                     ((:create)
+                      (let* ((new-class (create-with-new-rates rates))
+                             (new-class-tree (wbtree-update name new-class all-classes)))
+                        (when (compare-and-set-vat-classes all-classes new-class-tree)
+                          (return-from define (values new-class :created))))))))))))
+               
 
 (defun map-vat-rates (function &optional class)
   (flet ((map-rates (class)
@@ -95,18 +146,18 @@
     (if class
         (map-rates class)
         (wbtree-map (lambda (node) (map-rates (wbtree-node-value node)))
-                    *all-classes*))))
+                    (all-vat-classes)))))
 
 
 (defun map-vat-classes (function)
   (wbtree-map (lambda (node) (funcall function (wbtree-node-value node))) 
-              *all-classes*))
+              (all-vat-classes)))
 
 
 (defun find-vat-class (value &optional (errorp t) default)
   (if (typep value 'vat-class)
       (values value t)
-      (let ((class (wbtree-find value *all-classes*)))
+      (let ((class (wbtree-find value (all-vat-classes))))
         (cond
           (class (values class t))
           ((not errorp) (values default nil))
@@ -122,30 +173,13 @@
       (t (error "there is no defined rate for VAT class ~S as of ~S" class as-of)))))
 
 
-(defun define-vat-class* (name &optional rates)
-  (let* ((name (string name))
-         (class (let ((present (find-vat-class name nil)))
-                  (if (not present)
-                      (add-vat-class name)
-                      (progn
-                        (setf (vat-class-rates present) (timestamp-tree))
-                        present)))))
-    (flet ((parse-time (value)
-             (etypecase value
-               (timestamp value)
-               (string (parse-timestring value)))))
-      (loop
-         :for (valid-from* . value) :in rates
-         :for valid-from := (parse-time valid-from*)
-         :do (add-vat-rate value valid-from class))
-      class)))
-
-
 (defmacro define-vat-class (name &body rates)
   `(define-vat-class* ',name
        (list ,@(loop
                   :for (time-form value-form) :in rates
-                  :collecting `(cons ,time-form ,value-form)))))
+                  :collecting `(cons ,time-form ,value-form)))
+     :if-exists :supersede
+     :if-does-not-exist :create))
 
 
 (define-vat-class :none)
