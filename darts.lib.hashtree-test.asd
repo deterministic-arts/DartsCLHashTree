@@ -36,4 +36,5 @@
     :components
     ((:file "package") 
      (:file "hashtree" :depends-on ("package"))
-     (:file "hashtrie-tests" :depends-on ("package"))))))
+     (:file "hashtrie-tests" :depends-on ("package"))
+     (:file "wbtree" :depends-on ("package"))))))
