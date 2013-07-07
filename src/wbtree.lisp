@@ -452,6 +452,12 @@
 
 
 (defun wbtree-union (tree1 tree2)
+  "Answers the tree, which is the union of `tree1' and `tree2',
+   which must both be WB trees of the same subtype. The resulting
+   tree contains entries for all keys, which are present in either
+   `tree1' or `tree2' (or both). If a key is present in both trees,
+   the resulting tree will associate it with the value taken from
+   `tree2'."
   (multiple-value-bind (lessp make-node empty-node) (wbtree-information tree1)
     (labels ((union* (tree1 tree2)
                (cond 
@@ -469,6 +475,8 @@
 
 
 (defun wbtree-difference (tree1 tree2)
+  "Answers a copy of `tree1', in which all entries have been
+   removed, which match keys present in `tree2'."
   (multiple-value-bind (lessp make-node empty-node) (wbtree-information tree1)
     (labels ((difference* (tree1 tree2)
                (cond 
@@ -485,6 +493,10 @@
 
 
 (defun wbtree-intersection (tree1 tree2)
+  "Answers the tree, which is the intersection of `tree1' and 
+   `tree2', which must both be WB trees of the same subtype. The 
+   resulting tree contains entries for all keys, which are present 
+   in `tree1' as well as `tree2', and uses the values of `tree2'."
   (multiple-value-bind (lessp make-node empty-node) (wbtree-information tree1)
     (with-function (lessp)
       (labels ((memberp (key tree)
