@@ -8,6 +8,23 @@
 (defstruct (wbtree 
              (:conc-name "NODE-")
              (:predicate wbtreep))
+  "Weight balanced binary tree. This structure defines the basic
+   building blocks for the nodes of a WB tree. Each node consists
+   of the following information:
+
+   - key: the node's key value. The value of this field is undefined
+     for the node representing an empty tree. 
+   - value: the value associated with `key'. The actual value is
+     undefined, if the node is representing the empty tree.
+   - count: number of key/value pairs in this node, i.e., 0, if this
+     is the empty node, and 1 + left-count + right-count otherwise.
+   - left: the left subtree. Either the empty tree, or a proper WB
+     tree such, that all keys are \"less than\" this node's key.
+   - right: the right subtree. Either the empty tree, or a proper WB
+     tree such, that all keys are \greater than\" this node's key.
+
+   Applications deal only with struct types, which are derived from
+   this one via `:include'."
   (key nil :read-only t)
   (value nil :read-only t)
   (count 0 :read-only t)
@@ -37,29 +54,51 @@
 
 
 (defun wbtree-empty-p (node)
+  "Tests, whether `node' represents an empty tree."
   (zerop (node-count node)))
 
 (defun wbtree-size (node)
+  "Answers the number of valid key/value pairs contained in `tree'"
   (node-count node))
 
 (defun wbtree-node-value (node)
+  "Obtains the value associated with `node'. If `node' is the empty
+   tree, raises a condition of type `simple-error'."
   (if (zerop (node-count node)) (error "attempt to get value of empty node")
       (node-value node)))
 
 (defun wbtree-node-key (node)
+  "Obtains the key associated with `node' If `node' is the empty
+   tree, raises a condition of type `simple-error'."
   (if (zerop (node-count node)) (error "attempt to get key of empty node")
       (node-key node)))
 
 (defun wbtree-node-left-subtree (node)
+  "Obtains the left subtree of `node' or `node' itself, if it is 
+   the empty tree"
   (if (zerop (node-count node)) node
       (node-left node)))
 
 (defun wbtree-node-right-subtree (node)
+  "Obtains the right subtree of `node' or `node' itself, if it is 
+   the empty tree"
   (if (zerop (node-count node)) node
       (node-right node)))
 
-(defgeneric wbtree-information (node))
-  ;; => predicate constructor empty-node type-name
+
+(defgeneric wbtree-information (node)
+  (:documentation "Provides meta-information about the concrete WB tree
+   subtype implemented by `node'. Each WB tree subtype defines a suitable
+   method on this function, which provides (as values) the following
+   information:
+
+   - the comparison predicate used by the subtype
+   - the constructor function for nodes of this particular type
+   - the canonical empty tree value
+   - the type's name (a symbol)
+
+   All functions manipulating WB trees use this function to obtain the
+   information required to actually handle instances of the subtype."))
 
 
 (defmacro with-function ((name &optional (init-form name)) &body body)
@@ -73,6 +112,8 @@
 
 
 (defun wbtree-minimum-node (tree)
+  "Answers the node with the smallest (in the sense of the subtype's
+   comparison function) key present in `tree'."
   (if (wbtree-empty-p tree)
       nil
       (loop 
@@ -83,6 +124,8 @@
 
 
 (defun wbtree-maximum-node (tree)
+  "Answers the node with the largest (in the sense of the subtype's
+   comparison function) key present in `tree'."
   (if (wbtree-empty-p tree)
       nil
       (loop
@@ -93,6 +136,9 @@
 
 
 (defun wbtree-upper-boundary-node (key tree)
+  "Finds the node with the smallest key in `tree', which is greater
+   than or equal to `key' according to the subtype's comparison 
+   function."
   (with-function (lessp (wbtree-information tree))
     (labels ((walk (nd best)
                (if (wbtree-empty-p nd) best
@@ -105,6 +151,9 @@
 
 
 (defun wbtree-lower-boundary-node (key tree)
+  "Finds the node with the largest key in `tree', which is less
+   than or equal to `key' according to the subtype's comparison 
+   function."
   (with-function (lessp (wbtree-information tree))
     (labels ((walk (nd best)
                (if (wbtree-empty-p nd) best
@@ -117,6 +166,8 @@
 
 
 (defun wbtree-find-node (key tree)
+  "Finds the node in `tree', whose key is equal to `key'. If no 
+   matching node is found, this function returns nil."
   (with-function (lessp (wbtree-information tree))
     (labels ((walk (node)
                (if (wbtree-empty-p node) nil
@@ -128,14 +179,16 @@
       (walk tree))))
 
 
-(defun wbtree-find (key tree)
+(defun wbtree-find (key tree &optional default)
+  "Finds the value associated with `key' in `tree'. This function
+   returns two values: the value associated with `key' as primary
+   value or `default', if no matching node could be found. The second 
+   value is a generalized boolean value, which indicates, whether 
+   the node was found or not."
   (let ((node (wbtree-find-node key tree)))
     (if node
         (values (node-value node) node)
-        (values nil nil))))
-
-
-
+        (values default nil))))
 
 
 (defun rotate-once (direction make-node key value left right)
@@ -220,6 +273,23 @@
 
 
 (defun wbtree-update (key value tree &optional (test #'eql))
+  "Returns a copy of tree, in which `key' has been associated with
+   `value', potentially replacing any previous binding for `key' in
+   `tree'. If there is already an association of `key' in tree with
+   a value equal to `value' (which is determined via predicate 
+   function `test'), then the original tree is returned instead. The
+   default value of `test' is eql.
+
+   This function returns a secondary value, which indicates, which
+   changes have been performed in the resulting tree when compared
+   to the original `tree'. Possible values are:
+
+   - nil, if there was already a suitable association for `key' and
+     `value' in `tree'.
+   - :replaced, if there was an association for `key', which has
+     been replaced.
+   - :added, if the key was not present in `tree', and a new assocation
+     has been added."
   (multiple-value-bind (lessp make-node empty-node) (wbtree-information tree)
     (wbtree-update* key value tree test lessp make-node empty-node)))
 
@@ -268,6 +338,13 @@
 
 
 (defun wbtree-remove (key tree)
+  "Answers a copy of `tree', in which any association of `key' 
+   has been removed. Returns `tree' instead, if there is no entry
+   matching `key' in `tree'.
+
+   This function returns as secondary the WB tree node, which
+   has been removed in the copy returned as primary value, or nil,
+   if no matching node was found."
   (multiple-value-bind (lessp make-node) (wbtree-information tree)
     (ptree-remove* key tree lessp make-node)))
 
@@ -277,6 +354,28 @@
                         (collectp nil)
                         (start nil have-start)
                         (end nil have-end))
+  "Maps `function' across all nodes of `tree'. If the value of
+   `direction' is :forward (the default), then the nodes are visited
+   in proper tree order (i.e., in ascending key order as determined
+   by the tree's comparison function). If the value is :backward, then
+   the nodes are visited in the opposite order.
+
+   If `start' is provided, traversal starts at the smallest key, which
+   is greater than or equal to `start', when direction is :forward, or
+   with the node, whose key is the largest still less than or equal to 
+   `start', if `direction' is :backward. The start node is passed to
+   `function'.
+
+   If `end' is provided, traversal stops at the node with smallest key,
+   which is larger than or equal to `end' when iterating in :forward
+   direction, or at the node with the largest key still smaller than or
+   equal to `end', when iterating backwards. In either case, the stop
+   node is not passed down to `function'.
+
+   If `collectp', the primary return values of each invocation of 
+   `function' are collected into a list, which is then returned as 
+   primary (and only) value of `wbtree-map' itself. If not `collectp',
+   return values of `function' are ignored, and wbtree-map returns nil."
   (let ((head nil) (tail nil)
         (forward (ecase direction ((:forward t) t) ((:backward nil) nil))))
     (with-function (lessp (wbtree-information tree))
