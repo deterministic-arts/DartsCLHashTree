@@ -27,7 +27,10 @@
 
 (defpackage "WBTREE-EXAMPLES"
   (:use "COMMON-LISP" "DARTS.LIB.WBTREE" "LOCAL-TIME" "BORDEAUX-THREADS") 
-  (:export))
+  (:export "VAT-CLASS" "VAT-CLASS-NAME" "VAT-CLASS-RATES" "VAT-RATE" "VAT-RATE-CLASS"
+           "VAT-RATE-VALUE" "VAT-RATE-VALID-FROM" "ALL-VAT-CLASSES" "FIND-VAT-CLASS"
+           "FIND-VAT-RATE" "MAP-VAT-CLASSES" "MAP-VAT-RATES" "DEFINE-VAT-CLASS"
+           "DEFINE-VAT-CLASS*"))
 
 (in-package "WBTREE-EXAMPLES")
 
@@ -42,22 +45,37 @@
 (defclass vat-class ()
   ((name
      :type string :initarg :name
-     :reader vat-class-name)
+     :reader vat-class-name
+     :documentation "The unique name of this class")
    (rates
      :type timestamp-tree :initform (timestamp-tree)
-     :accessor vat-class-rates)))
-
+     :accessor vat-class-rates
+     :documentation "Tree of associated rates"))
+  (:documentation "A named collection of individual VAT rates. All classes
+    are kept in a search tree keyed by their names. Instances of this class
+    are immutable after construction."))
+   
 
 (defclass vat-rate ()
   ((class
      :type vat-class :initarg :class
-     :reader vat-rate-class)
+     :reader vat-rate-class
+     :documentation "Class, this rate belongs to")
    (valid-from
      :type timestamp :initarg :valid-from
-     :reader vat-rate-valid-from)
+     :reader vat-rate-valid-from
+     :documentation "The date, when this rate becomes valid")
    (value
      :type ratio :initarg :value
-     :reader vat-rate-value)))
+     :reader vat-rate-value
+     :documentation "The actual rate value"))
+  (:documentation "An individual VAT rate. Each rate belongs to a
+    single class. All rates of a class are kept in a binary search
+    tree keyed by their valid-from timestamps. Given a transaction 
+    timestamp R, in order to find the VAT rate applicable at R,
+    find the rate entry, whose valid-from timestamp is the one with
+    the largest key <= R. Instances of this class are immutable
+    after construction."))
 
 
 (defmethod print-object ((object vat-class) stream)
@@ -139,21 +157,6 @@
                           (return-from define (values new-class :created))))))))))))
                
 
-(defun map-vat-rates (function &optional class)
-  (flet ((map-rates (class)
-           (wbtree-map (lambda (node) (funcall function (wbtree-node-value node)))
-                       class)))
-    (if class
-        (map-rates class)
-        (wbtree-map (lambda (node) (map-rates (wbtree-node-value node)))
-                    (all-vat-classes)))))
-
-
-(defun map-vat-classes (function)
-  (wbtree-map (lambda (node) (funcall function (wbtree-node-value node))) 
-              (all-vat-classes)))
-
-
 (defun find-vat-class (value &optional (errorp t) default)
   (if (typep value 'vat-class)
       (values value t)
@@ -171,6 +174,21 @@
       (rate (values (wbtree-node-value rate) t))
       ((not errorp) (values default nil))
       (t (error "there is no defined rate for VAT class ~S as of ~S" class as-of)))))
+
+
+(defun map-vat-classes (function)
+  (wbtree-map (lambda (node) (funcall function (wbtree-node-value node))) 
+              (all-vat-classes)))
+
+
+(defun map-vat-rates (function &optional class)
+  (flet ((map-rates (class)
+           (wbtree-map (lambda (node) (funcall function (wbtree-node-value node)))
+                       (vat-class-rates class))))
+    (if class
+        (map-rates (find-vat-class class))
+        (map-vat-classes #'map-rates))))
+
 
 
 (defmacro define-vat-class (name &body rates)
@@ -200,6 +218,6 @@
   ("1978-01-01T12:00:00.000Z" 60/1000)
   ("1979-07-01T12:00:00.000Z" 65/1000)
   ("1983-07-01T12:00:00.000Z" 70/1000)
-  ("1993-01-01T12:00:00.000Z" 70/1000)
-  ("1998-04-01T12:00:00.000Z" 70/1000)
-  ("2007-01-01T12:00:00.000Z" 70/1000))
+  #-(and) ("1993-01-01T12:00:00.000Z" 70/1000)
+  #-(and) ("1998-04-01T12:00:00.000Z" 70/1000)
+  #-(and) ("2007-01-01T12:00:00.000Z" 70/1000))
