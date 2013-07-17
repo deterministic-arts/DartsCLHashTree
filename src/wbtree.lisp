@@ -6,7 +6,7 @@
 
 
 (defstruct (wbtree 
-             (:conc-name "NODE-")
+             (:conc-name nil)
              (:predicate wbtreep))
   "Weight balanced binary tree. This structure defines the basic
    building blocks for the nodes of a WB tree. Each node consists
@@ -25,11 +25,11 @@
 
    Applications deal only with struct types, which are derived from
    this one via `:include'."
-  (key nil :read-only t)
-  (value nil :read-only t)
-  (count 0 :read-only t)
-  (left nil :read-only t)
-  (right nil :read-only t))
+  (node-key nil :read-only t)
+  (node-value nil :read-only t)
+  (node-count 0 :read-only t)
+  (node-left nil :read-only t)
+  (node-right nil :read-only t))
 
 
 (defmethod print-object ((ob wbtree) stream)
@@ -570,14 +570,13 @@
 (defmacro define-wbtree (name lessp)
   (let* ((info (get name 'wbtree-information))
          (constructor (if info (car info) (gensym)))
-         (empty (if info (cdr info) (gensym)))
-         (conc-name (format nil "~A Do Not Use.." (symbol-name name))))
+         (empty (if info (cdr info) (gensym))))
     `(progn
        (defstruct (,name
                     (:include wbtree)
-                    (:constructor ,constructor (key value left right 
-                                                &optional (count (+ (node-count left) (node-count right) 1))))
-                    (:conc-name ,conc-name)))
+                    (:constructor ,constructor (node-key node-value node-left node-right 
+                                                &optional (node-count (+ (node-count node-left) (node-count node-right) 1))))
+                    (:conc-name nil)))
        (eval-when (:compile-toplevel :load-toplevel :execute)
          (setf (get ',name 'wbtree-information) (cons ',constructor ',empty)))
        (defparameter ,empty (,constructor nil nil nil nil 0))
