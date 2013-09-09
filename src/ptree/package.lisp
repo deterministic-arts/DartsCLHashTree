@@ -21,18 +21,18 @@
   THE SOFTWARE.
 |#
 
-(in-package "COMMON-LISP-USER")
-(defpackage "DARTS.ASDF" (:use "COMMON-LISP" "ASDF"))
-(in-package "DARTS.ASDF")
 
-(defsystem :darts.lib.hashtree
-  :name "darts.lib.hashtree"
-  :author "Dirk Esser"
-  :version "0.1"
-  :maintainer "Dirk Esser"
-  :licence "MIT"
-  :description "Provides a few purely functional data structures"
-  :long-description "This system is provided for compatibility with older
-   code. For new projects, directly depend on the appropriate sub-system,
-   i.e., darts.lib.hashtrie or darts.lib.wbtree."
-  :depends-on ("darts.lib.hashtrie" "darts.lib.wbtree" "darts.lib.ptree"))
+(defpackage "DARTS.LIB.PTREE"
+  (:use "COMMON-LISP")
+  (:export "PTREE" "PTREEP" "+EMPTY-PTREE+" "PTREE-EMPTY-P" "PTREE-KEY"
+           "PTREE-VALUE" "PTREE-SIZE" "PTREE-GET" "PTREE-INSERT" "PTREE-LEFT"
+           "PTREE-RIGHT" "PTREE-MINIMUM" "PTREE-MAXIMUM" "PTREE-SMALLEST"
+           "PTREE-LARGEST" "PTREE-REMOVE" "PTREE-MAP" "PTREE-UPDATE"
+           "PTREE-UNION" "PTREE-INTERSECTION" "PTREE-DIFFERENCE" "PTREE-EQUAL"
+           "PTREE-ITERATOR" "PTREE-FIND" "PTREE-FOLD" "PTREE-VALUES" "PTREE-KEYS"
+           "PTREE-PAIRS")
+  (:documentation "Provides a simple binary search tree implementation, 
+which uses strings as keys. The tree is balanced. This code is based on the
+paper Implementing Sets Efficiently in a Functional Language by S. Adams.
+Short of renaming a few things and adapting the code to Common Lisp, the
+algorithms presented there were used pretty much as-is."))

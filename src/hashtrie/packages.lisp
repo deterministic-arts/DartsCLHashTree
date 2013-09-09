@@ -77,33 +77,3 @@ by hash trees at all."))
   (:documentation "Compatibility interface. Note that everything in this
 package is deprecated."))
 
-
-(defpackage "DARTS.LIB.PTREE"
-  (:use "COMMON-LISP")
-  (:export "PTREE" "PTREEP" "+EMPTY-PTREE+" "PTREE-EMPTY-P" "PTREE-KEY"
-           "PTREE-VALUE" "PTREE-SIZE" "PTREE-GET" "PTREE-INSERT" "PTREE-LEFT"
-           "PTREE-RIGHT" "PTREE-MINIMUM" "PTREE-MAXIMUM" "PTREE-SMALLEST"
-           "PTREE-LARGEST" "PTREE-REMOVE" "PTREE-MAP" "PTREE-UPDATE"
-           "PTREE-UNION" "PTREE-INTERSECTION" "PTREE-DIFFERENCE" "PTREE-EQUAL"
-           "PTREE-ITERATOR" "PTREE-FIND" "PTREE-FOLD" "PTREE-VALUES" "PTREE-KEYS"
-           "PTREE-PAIRS")
-  (:documentation "Provides a simple binary search tree implementation, 
-which uses strings as keys. The tree is balanced. This code is based on the
-paper Implementing Sets Efficiently in a Functional Language by S. Adams.
-Short of renaming a few things and adapting the code to Common Lisp, the
-algorithms presented there were used pretty much as-is."))
-
-
-(defpackage "DARTS.LIB.WBTREE"
-  (:use "COMMON-LISP")
-  (:export "WBTREE" "WBTREEP" "WBTREE-EMPTY-P" "WBTREE-SIZE" "WBTREE-NODE-VALUE" 
-           "WBTREE-NODE-KEY" "WBTREE-NODE-LEFT-SUBTREE" "WBTREE-NODE-RIGHT-SUBTREE" 
-           "WBTREE-UPDATE" "WBTREE-REMOVE" "WBTREE-MAP" "WBTREE-FIND-NODE" 
-           "WBTREE-FIND" "WBTREE-DIFFERENCE" "WBTREE-UNION" "WBTREE-INTERSECTION" 
-           "WBTREE-ITERATOR" "WBTREE-EQUAL" "DEFINE-WBTREE" "WBTREE-LOWER-BOUNDARY-NODE"
-           "WBTREE-UPPER-BOUNDARY-NODE" "WBTREE-CHECK-INVARIANTS" "WBTREE-REBALANCE")
-  (:documentation "Generalized weight-balanced binary search trees. This
-package provides a variant of the weight-balanced binary trees implemented
-in package DARTS.LIB.PTREE. The variant exposed here can be used with arbitrary
-key types, provided, a total order is defined on the keys, for which a suitable
-predicate function (in the sense of #'<) exists."))

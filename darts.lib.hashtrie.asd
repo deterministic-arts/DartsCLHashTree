@@ -25,14 +25,21 @@
 (defpackage "DARTS.ASDF" (:use "COMMON-LISP" "ASDF"))
 (in-package "DARTS.ASDF")
 
-(defsystem :darts.lib.hashtree
-  :name "darts.lib.hashtree"
+(defsystem :darts.lib.hashtrie
+  :name "darts.lib.hashtrie"
   :author "Dirk Esser"
   :version "0.1"
   :maintainer "Dirk Esser"
   :licence "MIT"
-  :description "Provides a few purely functional data structures"
-  :long-description "This system is provided for compatibility with older
-   code. For new projects, directly depend on the appropriate sub-system,
-   i.e., darts.lib.hashtrie or darts.lib.wbtree."
-  :depends-on ("darts.lib.hashtrie" "darts.lib.wbtree" "darts.lib.ptree"))
+  :description "Hash-based trie structure"
+  :long-description ""
+  :depends-on ()
+  :components
+  ((:module :src
+    :components
+    ((:module :hashtrie
+      :components
+      ((:file "packages")
+       (:file "implementation" :depends-on ("packages"))
+       (:file "compatibility" :depends-on ("implementation" "packages"))))))))
+      

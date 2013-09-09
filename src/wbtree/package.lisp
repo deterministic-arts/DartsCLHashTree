@@ -21,18 +21,16 @@
   THE SOFTWARE.
 |#
 
-(in-package "COMMON-LISP-USER")
-(defpackage "DARTS.ASDF" (:use "COMMON-LISP" "ASDF"))
-(in-package "DARTS.ASDF")
-
-(defsystem :darts.lib.hashtree
-  :name "darts.lib.hashtree"
-  :author "Dirk Esser"
-  :version "0.1"
-  :maintainer "Dirk Esser"
-  :licence "MIT"
-  :description "Provides a few purely functional data structures"
-  :long-description "This system is provided for compatibility with older
-   code. For new projects, directly depend on the appropriate sub-system,
-   i.e., darts.lib.hashtrie or darts.lib.wbtree."
-  :depends-on ("darts.lib.hashtrie" "darts.lib.wbtree" "darts.lib.ptree"))
+(defpackage "DARTS.LIB.WBTREE"
+  (:use "COMMON-LISP")
+  (:export "WBTREE" "WBTREEP" "WBTREE-EMPTY-P" "WBTREE-SIZE" "WBTREE-NODE-VALUE" 
+           "WBTREE-NODE-KEY" "WBTREE-NODE-LEFT-SUBTREE" "WBTREE-NODE-RIGHT-SUBTREE" 
+           "WBTREE-UPDATE" "WBTREE-REMOVE" "WBTREE-MAP" "WBTREE-FIND-NODE" 
+           "WBTREE-FIND" "WBTREE-DIFFERENCE" "WBTREE-UNION" "WBTREE-INTERSECTION" 
+           "WBTREE-ITERATOR" "WBTREE-EQUAL" "DEFINE-WBTREE" "WBTREE-LOWER-BOUNDARY-NODE"
+           "WBTREE-UPPER-BOUNDARY-NODE" "WBTREE-CHECK-INVARIANTS" "WBTREE-REBALANCE")
+  (:documentation "Generalized weight-balanced binary search trees. This
+package provides a variant of the weight-balanced binary trees implemented
+in package DARTS.LIB.PTREE. The variant exposed here can be used with arbitrary
+key types, provided, a total order is defined on the keys, for which a suitable
+predicate function (in the sense of #'<) exists."))

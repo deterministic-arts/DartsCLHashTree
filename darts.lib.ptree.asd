@@ -25,14 +25,24 @@
 (defpackage "DARTS.ASDF" (:use "COMMON-LISP" "ASDF"))
 (in-package "DARTS.ASDF")
 
-(defsystem :darts.lib.hashtree
-  :name "darts.lib.hashtree"
+(defsystem :darts.lib.ptree
+  :name "darts.lib.ptree"
   :author "Dirk Esser"
   :version "0.1"
   :maintainer "Dirk Esser"
   :licence "MIT"
-  :description "Provides a few purely functional data structures"
-  :long-description "This system is provided for compatibility with older
-   code. For new projects, directly depend on the appropriate sub-system,
-   i.e., darts.lib.hashtrie or darts.lib.wbtree."
-  :depends-on ("darts.lib.hashtrie" "darts.lib.wbtree" "darts.lib.ptree"))
+  :description "Weight-balanced binary tree (string keys only)"
+  :long-description "This system exists mainly for compatibility. It provides
+   a weight balanced binary tree, which is specialized for string keys, using
+   a slightly different interface compared to the full `darts.lib.wbtree'
+   package. Users of this system should consider using the `darts.lib.wbtree'
+   package instead, since I am going to drop support for the ptree stuff
+   soon."
+  :depends-on ()
+  :components
+  ((:module :src
+    :components
+    ((:module :ptree
+      :components
+      ((:file "package")
+       (:file "implementation" :depends-on ("package"))))))))
