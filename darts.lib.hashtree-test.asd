@@ -22,9 +22,7 @@
 |#
 
 (in-package "COMMON-LISP-USER")
-
 (defpackage "DARTS.ASDF" (:use "COMMON-LISP" "ASDF"))
-
 (in-package "DARTS.ASDF")
 
 (defsystem :darts.lib.hashtree-test
