@@ -21,6 +21,18 @@ actually share state with the original tree, to which the
 operation was applied).
 
 
+Weight-Balanced Binary Trees
+-----------------------------
+
+The system `darts.lib.wbtree` provides support for weight-balanced
+binary trees, modelled after the paper "Implementing Sets Efficiently 
+in a Functional Language" by S. Adams.
+
+Applications can define their own subtypes of the wbtree type, with
+a specialized comparison predicate for the actual key type.
+
+
+
 Hash Tries
 ----------
 
@@ -82,6 +94,11 @@ walk...)
 
 Property Trees
 ---------------
+
+Warning: This package is a now deprecated precursor to the more general
+darts.lib.wbtree package. The package will not suddenly disappear, but
+the nowadays, I am using the more general wbtree package, and keep this
+one only for the legacy code. All future development will happen in wbtree.
 
 A property tree is a weight-balanced binary search tree. Right now, the
 implementation only supports string designators as keys. The algorithms
