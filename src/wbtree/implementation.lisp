@@ -529,15 +529,13 @@
                           (multiple-value-bind (nr val) (split-lt key value r)
                             (values (conc-3 k v l nr) val)))
                          (t (values l (combiner key v value)))))))
-               (split-gt (key value tree)
-                 (if (wbtree-empty-p tree) (values tree value)
+               (split-gt (key tree)
+                 (if (wbtree-empty-p tree) tree
                      (with-node (k v _ l r) tree
                        (cond
-                         ((lessp key k) 
-                          (multiple-value-bind (nl val) (split-gt key value l)
-                            (values (conc-3 k v nl r) val)))
-                         ((lessp k key) (split-gt key value r))
-                         (t (values r value)))))) ;; present in both trees, already merged by split-lt
+                         ((lessp key k) (conc-3 k v (split-gt key l) r))
+                         ((lessp k key) (split-gt key r))
+                         (t r)))))
                (union* (tree1 tree2)
                  (cond 
                    ((eq tree1 tree2) tree1)
@@ -545,8 +543,8 @@
                    ((wbtree-empty-p tree1) tree2)
                    (t (with-node (k v _ l r) tree2
                         (multiple-value-bind (l* v*) (split-lt k v tree1)
-                          (multiple-value-bind (r* v**) (split-gt k v* tree1)
-                            (conc-3 k v**
+                          (let ((r* (split-gt k tree1)))
+                            (conc-3 k v*
                                     (union* l* l)
                                     (union* r* r)))))))))
             (union* tree1 tree2)))))))
