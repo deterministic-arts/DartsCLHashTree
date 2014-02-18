@@ -372,6 +372,70 @@
     (ptree-remove* key tree lessp make-node)))
 
 
+(defun wbtree-fold (function tree 
+                    &key (direction :forward) (associativity :left)
+                         (initial-value nil)
+                         (start nil have-start)
+                         (end nil have-end))
+  "Applies `function' to all nodes in `tree'. 
+
+   If `direction' is `:forward', then only those nodes are visited, 
+   whose keys are greater than or equal to `start' and less than `end';
+   traversal will be in proper tree order. This is the default.
+
+   If `direction' is `:backward', then only those nodes are visited,
+   whose keys are less then or equal to `start', and greater then `end',
+   and the traversal will happen in the opposite of the normal tree
+   order.
+
+   If `associativity' is `:left' (the default), the function is called
+   with the value of its last invocation as first, and the current 
+   node as second argument. If `associativity' is `:right', then the
+   arguments are exchanged, i.e., the node will be the first argument,
+   and the accumulated value will be the second. On the first invocation,
+   the function receives the `initial-value' as accumulator value.
+
+   This function returns the last value returned by `function', or
+   `initial-value', if the function is not called at all (e.g., because
+   the selected key range is empty).
+
+   Example:
+
+      (wbtree-fold #'cons some-tree :associativity :right :direction :backward)
+
+   will yield a list of all tree nodes in proper tree order."
+  (declare (optimize (speed 3) (debug 0)))
+  (let ((forward (ecase direction ((:forward t) t) ((:backward nil) nil)))
+        (function (coerce function 'function))
+        (lessp (coerce (wbtree-information tree) 'function))
+        (value initial-value))
+    (with-function (lessp)
+      (labels ((reduce-node (node) 
+                 (if (eq associativity :left)
+                     (setf value (funcall function value node))
+                     (setf value (funcall function node value))))
+               (walk-forward (node)
+                 (unless (wbtree-empty-p node)
+                   (let ((start-in (not (and have-start (lessp (node-key node) start))))
+                         (end-in (or (not have-end) (lessp (node-key node) end))))
+                     (when start-in
+                       (walk-forward (node-left node))
+                       (when end-in (reduce-node node))
+                     (when end-in (walk-forward (node-right node)))))))
+               (walk-backward (node)
+                 (unless (wbtree-empty-p node)
+                   (let ((start-in (not (and have-start (lessp start (node-key node)))))
+                         (end-in (or (not have-end) (lessp end (node-key node)))))
+                     (when start-in
+                       (walk-backward (node-right node))
+                       (when end-in (reduce-node node)))
+                     (when end-in (walk-backward (node-left node)))))))
+        (if forward
+            (walk-forward tree)
+            (walk-backward tree))
+        value))))
+
+
 (defun wbtree-map (function tree 
                    &key (direction :forward) 
                         (collectp nil)
