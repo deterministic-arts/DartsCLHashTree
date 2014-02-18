@@ -537,7 +537,7 @@
                           (multiple-value-bind (nl val) (split-gt key value l)
                             (values (conc-3 k v nl r) val)))
                          ((lessp k key) (split-gt key value r))
-                         (t (values r (combiner key v value)))))))
+                         (t (values r value)))))) ;; present in both trees, already merged by split-lt
                (union* (tree1 tree2)
                  (cond 
                    ((eq tree1 tree2) tree1)
