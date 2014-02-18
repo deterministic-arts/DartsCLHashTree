@@ -442,6 +442,10 @@
                    ,tree ,@options))))
 
 
+          
+
+
+
 (defun concat-3 (key value left right lessp make-node empty-node)
   (with-function (make-node)
     (cond ((wbtree-empty-p left) (wbtree-update* key value right #'eql lessp make-node empty-node))
@@ -486,27 +490,105 @@
                           (rebalance make-node min-key min-value tree1 (delete-minimum make-node tree2))))))))))
 
 
-(defun wbtree-union (tree1 tree2)
+
+(defun choose-right (key left right)
+  (declare (ignore key left))
+  right)
+
+
+(defun wbtree-union (tree1 tree2 &key (combiner #'choose-right))
   "Answers the tree, which is the union of `tree1' and `tree2',
    which must both be WB trees of the same subtype. The resulting
    tree contains entries for all keys, which are present in either
    `tree1' or `tree2' (or both). If a key is present in both trees,
-   the resulting tree will associate it with the value taken from
-   `tree2'."
+   the resulting tree will associate it with the value, which is
+   chosen by function `combiner', which must accept three arguments:
+
+     1. the key present in both trees
+     2. the associated value in `tree1'
+     3. the associated value in `tree2'.
+
+   The value returned by `combiner' will then be used as the value
+   to associate with the overlapping key in the result tree. The
+   default combiner function always yields the value in `tree2', and
+   discards the value from `tree1'."
   (multiple-value-bind (lessp make-node empty-node) (wbtree-information tree1)
-    (labels ((union* (tree1 tree2)
-               (cond 
-                 ((eq tree1 tree2) tree1)
-                 ((wbtree-empty-p tree2) tree1)
-                 ((wbtree-empty-p tree1) tree2)
-                 (t (with-node (k v _ l r) tree2
-                      (let ((l* (split-lt k tree1 lessp make-node empty-node))
-                            (r* (split-gt k tree1 lessp make-node empty-node)))
-                        (concat-3 k v 
-                                  (union* l* l)
-                                  (union* r* r)
-                                  lessp make-node empty-node)))))))
-    (union* tree1 tree2))))
+    (with-function (lessp)
+      (with-function (make-node) 
+        (with-function (combiner)
+          (labels
+              ((conc-3 (key value left right) 
+                 (concat-3 key value left right lessp make-node empty-node))
+               (split-lt (key value tree)
+                 (if (wbtree-empty-p tree) 
+                     (values tree value)
+                     (with-node (k v _ l r) tree
+                       (cond
+                         ((lessp key k) (split-lt key value l))
+                         ((lessp k key) 
+                          (multiple-value-bind (nr val) (split-lt key value r)
+                            (values (conc-3 k v l nr) val)))
+                         (t (values l (combiner key v value)))))))
+               (split-gt (key value tree)
+                 (if (wbtree-empty-p tree) (values tree value)
+                     (with-node (k v _ l r) tree
+                       (cond
+                         ((lessp key k) 
+                          (multiple-value-bind (nl val) (split-gt key value l)
+                            (values (conc-3 k v nl r) val)))
+                         ((lessp k key) (split-gt key value r))
+                         (t (values r (combiner key v value)))))))
+               (union* (tree1 tree2)
+                 (cond 
+                   ((eq tree1 tree2) tree1)
+                   ((wbtree-empty-p tree2) tree1)
+                   ((wbtree-empty-p tree1) tree2)
+                   (t (with-node (k v _ l r) tree2
+                        (multiple-value-bind (l* v*) (split-lt k v tree1)
+                          (multiple-value-bind (r* v**) (split-gt k v* tree1)
+                            (conc-3 k v**
+                                    (union* l* l)
+                                    (union* r* r)))))))))
+            (union* tree1 tree2)))))))
+
+
+(defun wbtree-intersection (tree1 tree2 &key (combiner #'choose-right))
+  "Answers the tree, which is the intersection of `tree1' and 
+   `tree2', which must both be WB trees of the same subtype. The 
+   resulting tree contains entries for all keys, which are present 
+   in `tree1' as well as `tree2'.
+
+   The `combiner' function determines, which value will be associated
+   with the keys in the resulting tree. It is called with three arguments,
+   the key, the associated value in `tree1', and the associated value in
+   `tree2'. Whatever value it returns will be used as the value for the
+   key in the resulting tree.
+
+   The default combiner function always answers the value from `tree2',
+   discarding the value in `tree1'."
+  (multiple-value-bind (lessp make-node empty-node) (wbtree-information tree1)
+    (with-function (lessp)
+      (labels ((memberp (key value tree)
+                 (if (wbtree-empty-p tree) (values nil value)
+                     (let ((key* (node-key tree)))
+                       (cond
+                         ((lessp key key*) (memberp key value (node-left tree)))
+                         ((lessp key* key) (memberp key value (node-right tree)))
+                         (t (values t (funcall combiner key (node-value tree) value)))))))
+               (intersect* (tree1 tree2)
+                 (cond 
+                   ((eq tree1 tree2) tree1)
+                   ((wbtree-empty-p tree1) empty-node)
+                   ((wbtree-empty-p tree2) empty-node)
+                   (t (with-node (k v _ l r) tree2
+                        (let ((l* (split-lt k tree1 lessp make-node empty-node))
+                              (r* (split-gt k tree1 lessp make-node empty-node)))
+                          (multiple-value-bind (member value) (memberp k v tree1)
+                            (if member
+                                (concat-3 k value (intersect* l* l) (intersect* r* r) lessp make-node empty-node)
+                                (concat (intersect* l* l) (intersect* r* r) lessp make-node empty-node)))))))))
+        (intersect* tree1 tree2)))))
+
 
 
 (defun wbtree-difference (tree1 tree2)
@@ -525,34 +607,6 @@
                                 (difference* r* r)
                                 lessp make-node empty-node)))))))
       (difference* tree1 tree2))))
-
-
-(defun wbtree-intersection (tree1 tree2)
-  "Answers the tree, which is the intersection of `tree1' and 
-   `tree2', which must both be WB trees of the same subtype. The 
-   resulting tree contains entries for all keys, which are present 
-   in `tree1' as well as `tree2', and uses the values of `tree2'."
-  (multiple-value-bind (lessp make-node empty-node) (wbtree-information tree1)
-    (with-function (lessp)
-      (labels ((memberp (key tree)
-                 (if (wbtree-empty-p tree) nil
-                     (let ((key* (node-key tree)))
-                       (cond
-                         ((lessp key key*) (memberp key (node-left tree)))
-                         ((lessp key* key) (memberp key (node-right tree)))
-                         (t t)))))
-               (intersect* (tree1 tree2)
-                 (cond 
-                   ((eq tree1 tree2) tree1)
-                   ((wbtree-empty-p tree1) empty-node)
-                   ((wbtree-empty-p tree2) empty-node)
-                   (t (with-node (k v _ l r) tree2
-                        (let ((l* (split-lt k tree1 lessp make-node empty-node))
-                              (r* (split-gt k tree1 lessp make-node empty-node)))
-                          (if (memberp k tree1)
-                              (concat-3 k v (intersect* l* l) (intersect* r* r) lessp make-node empty-node)
-                              (concat (intersect* l* l) (intersect* r* r) lessp make-node empty-node))))))))
-        (intersect* tree1 tree2)))))
 
 
 (defun wbtree-iterator (tree &key (direction :forward))
