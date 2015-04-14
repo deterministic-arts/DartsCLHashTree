@@ -158,7 +158,7 @@
          :finally (return previous))))
 
 
-(defun wbtree-upper-boundary-node (key tree)
+(defun wbtree-ceiling-node (key tree)
   "Finds the node with the smallest key in `tree', which is greater
    than or equal to `key' according to the subtype's comparison 
    function."
@@ -172,8 +172,7 @@
                        (t nd))))))
       (walk tree nil))))
 
-
-(defun wbtree-lower-boundary-node (key tree)
+(defun wbtree-floor-node (key tree)
   "Finds the node with the largest key in `tree', which is less
    than or equal to `key' according to the subtype's comparison 
    function."
@@ -186,6 +185,15 @@
                        ((lessp key nkey) (walk left best))
                        (t nd))))))
       (walk tree nil))))
+
+
+;;; Deprecated names 
+
+(defun wbtree-upper-boundary-node (key tree)
+  (wbtree-ceiling-node key tree))
+
+(defun wbtree-lower-boundary-node (key tree)
+  (wbtree-floor-node key tree))
 
 
 (defun wbtree-find-node (key tree)
@@ -718,7 +726,7 @@
 
 
 
-(defmacro define-wbtree (name lessp)
+(defmacro define-wbtree (name lessp &optional documentation)
   (let* ((info (get name 'wbtree-information))
          (constructor (if info (car info) (gensym (format nil "MAKE-~A-" (symbol-name name)))))
          (empty (if info (cdr info) (gensym (format nil "EMPTY-~A-" (symbol-name name))))))
@@ -728,7 +736,8 @@
                     (:constructor ,constructor (node-key node-value node-left node-right 
                                                 &optional (node-count (+ (node-count node-left) (node-count node-right) 1))))
                     (:copier nil)
-                    (:conc-name nil)))
+                    (:conc-name nil))
+         ,@(when documentation (list documentation)))
        (eval-when (:compile-toplevel :load-toplevel :execute)
          (setf (get ',name 'wbtree-information) (cons ',constructor ',empty)))
        (defparameter ,empty (,constructor nil nil nil nil 0))

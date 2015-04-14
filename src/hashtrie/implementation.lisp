@@ -338,9 +338,9 @@ or not."
                 (new-list  (if present
                                  (substitute (cons key value) present old-list :count 1 :test #'eq)
                                  (cons (cons key value) old-list))))
-             (values (make-node (node-tag node) new-list)
-                     (if present (cdr present) nil)
-                     (if present :replaced :added))))
+           (values (make-node (node-tag node) new-list)
+                   (if present (cdr present) nil)
+                   (if present :replaced :added))))
          (split-leaf (node)
            (let* ((old-code (node-tag node))
                   (old-index (logand old-code #b11111))

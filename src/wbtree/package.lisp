@@ -29,7 +29,8 @@
            "WBTREE-FIND" "WBTREE-DIFFERENCE" "WBTREE-UNION" "WBTREE-INTERSECTION" 
            "WBTREE-ITERATOR" "WBTREE-EQUAL" "DEFINE-WBTREE" "WBTREE-LOWER-BOUNDARY-NODE"
            "WBTREE-UPPER-BOUNDARY-NODE" "WBTREE-CHECK-INVARIANTS" "WBTREE-REBALANCE"
-           "WBTREE-FOLD" "WBTREE-MINIMUM-NODE" "WBTREE-MAXIMUM-NODE")
+           "WBTREE-FOLD" "WBTREE-MINIMUM-NODE" "WBTREE-MAXIMUM-NODE" "WBTREE-CEILING-NODE"
+           "WBTREE-FLOOR-NODE")
   (:documentation "Generalized weight-balanced binary search trees. This
 package provides a variant of the weight-balanced binary trees implemented
 in package DARTS.LIB.PTREE. The variant exposed here can be used with arbitrary
