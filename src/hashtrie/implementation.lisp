@@ -478,7 +478,12 @@ in the same order."
               ((:predicate) (setf predicate-name (the-bindable-symbol (the-only-form clause) "predicate name")))
               ((:constructor) (setf constructor-name (the-bindable-symbol (the-only-form clause) "constructor name")))))
       (let ((actual-constructor (if (null constructor-name) (intern (string-concat "MAKE-" name)) constructor-name))
-            (actual-predicate (if (null predicate-name) (intern (string-concat name (if (position #\- (symbol-name name)) "-P" "P"))) predicate-name)))
+            (actual-predicate (if (null predicate-name) (intern (string-concat name (if (position #\- (symbol-name name)) "-P" "P"))) predicate-name))
+            (trie (gensym))
+            (key (gensym))
+            (value (gensym))
+            (default (gensym))
+            (pairs (gensym)))
         `(progn
            
            (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -493,21 +498,21 @@ in the same order."
            
            (defparameter ,empty-variable (,node-constructor 0 ()))
            
-           (defun ,actual-constructor (&rest pairs)
+           (defun ,actual-constructor (&rest ,pairs)
              (loop
-               :with result := ,empty-variable
-               :for (key value) :on pairs :by #'cddr
-               :do (setf result (hashtrie-update-1 key (,hash-function key) value result #',node-constructor #',test-function))
-               :finally (return result)))
+               :with ,trie := ,empty-variable
+               :for (,key ,value) :on ,pairs :by #'cddr
+               :do (setf ,trie (hashtrie-update-1 ,key (,hash-function ,key) ,value ,trie #',node-constructor #',test-function))
+               :finally (return ,trie)))
 
-           (defmethod hashtrie-update (key value (trie ,name))
-             (hashtrie-update-1 key (,hash-function key) value trie #',node-constructor #',test-function))
+           (defmethod hashtrie-update (,key ,value (,trie ,name))
+             (hashtrie-update-1 ,key (,hash-function ,key) ,value ,trie #',node-constructor #',test-function))
 
-           (defmethod hashtrie-find (key (trie ,name) &optional default)
-             (hashtrie-find-1 key (,hash-function key) trie #',test-function default))
+           (defmethod hashtrie-find (,key (,trie ,name) &optional ,default)
+             (hashtrie-find-1 ,key (,hash-function ,key) ,trie #',test-function ,default))
 
-           (defmethod hashtrie-remove (key (trie ,name))
-             (hashtrie-remove-1 key (,hash-function key) trie ,empty-variable #',node-constructor #',test-function)))))))
+           (defmethod hashtrie-remove (,key (,trie ,name))
+             (hashtrie-remove-1 ,key (,hash-function ,key) ,trie ,empty-variable #',node-constructor #',test-function)))))))
 
            
            

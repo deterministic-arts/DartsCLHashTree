@@ -50,6 +50,34 @@ Defining new hash trie flavours
 
 - macro define-hashtrie name &body clauses ... 
 
+  Supported clauses are:
+
+  - `(:hash function)`
+
+    Declares `function` as the function, which computes 
+    the hash values. The `function` must be name a function
+    taking a single argument and returning a positive integer
+    in the range of `(unsigned-byte 32)`.
+
+    The default hash function is `sxhash`.
+
+  - `(:test function)`
+
+    Declares the function used to test, whether two keys are
+    equal. The default test function is `eql`.
+
+  - `(:predicate name)`
+
+    Declares the name of the generated type predicate to be
+    `name`. The predicate can be used (in addition to or instead
+    of) `(typep ... 'name)` to test, whether a value is an
+    instance of the newly defined hash trie type.
+
+  - `(:constructor name)`
+
+    Declares the name of the generated standard constructor 
+    to be `name`.
+
 The following functions are defined for any flavour of hash trie. 
 
 - function `hashtriep value` => `boolean`
