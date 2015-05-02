@@ -69,11 +69,12 @@
 ;;; node. By using a very special conc-name, we try not
 ;;; to pollute the caller's namespace.
 
-(defstruct (node 
+(defstruct (node
+             (:conc-name nil)
              (:constructor make-node (tag payload))
              (:predicate nodep))
-  (tag 0 :type (unsigned-byte 32) :read-only t)
-  (payload nil :read-only t))
+  (node-tag 0 :type (unsigned-byte 32) :read-only t)
+  (node-payload nil :read-only t))
 
 (defmethod print-object ((ob node) stream)
   (print-unreadable-object (ob stream :type t)
@@ -275,27 +276,11 @@ in the same order."
   `(block nil (hashtrie-map (lambda (,key ,value) ,@body) ,trie)))
 
 
-(defgeneric %hashtrie-control (tree)
-  (:documentation "Returns four values: HASH TEST MAKE-NODE EMPTY
-where HASH is the hash function of TREE, TEST is the equality
-predicate of TREE, MAKE-NODE is the node construction function
-of TREE and EMPTY is the canonical empty node."))
 
-
-(defun hashtrie-control (tree)
-  "Inspects the hash trie TREE and returns two values. The 
-primary value is the hash function used for TREE, and the
-secondary value is the equality predicate."
-  (multiple-value-bind (hash test make-node empty) (%hashtrie-control tree)
-    (declare (ignore make-node empty))
-    (values hash test)))
-
-
-
-(defun hashtrie-get* (key tree hash test &optional default)
-  (declare (dynamic-extent hash test))
+(defun hashtrie-find-1 (key key-hash tree test default)
+  (declare (dynamic-extent test))
   (recurr hunt-down ((node tree) 
-                     (hash (logand #xffffffff (funcall hash key))))
+                     (hash (logand #xffffffff key-hash)))
     (node-type-case node
       (:empty () (return-from hunt-down (values default nil)))
       (:leaf (code alist)
@@ -316,20 +301,11 @@ secondary value is the equality predicate."
                            (ash hash -5)))))))))
 
 
-(defun hashtrie-get (key tree &optional default)
-  "Looks up the value associated with KEY in TREE. If a matching
-value is found, it is returned as primary return value; otherwise
-DEFAULT is returned. The secondary return value is a boolean value
-indicating, whether a matching key/value pair was actually found 
-or not."
-  (multiple-value-bind (hash test make-node empty) (%hashtrie-control tree)
-    (declare (ignore make-node empty))
-    (hashtrie-get* key tree hash test default)))
-
-
-(defun hashtrie-update* (key value map make-node hash test)
+(defun hashtrie-update-1 (key key-hash value map make-node test)
   (declare (optimize (speed 3) (debug 0))
-           (dynamic-extent hash test))
+           (dynamic-extent test)
+           (type node map)
+           (type (function ((unsigned-byte 32) t) (values node)) make-node))
   (labels
       ((make-node (arg1 arg2) (funcall make-node arg1 arg2))
        (extend-leaf (node)
@@ -383,26 +359,12 @@ or not."
                          (let ((new-vector (copy-seq table-vector)))
                            (setf (svref new-vector table-index) new-child)
                            (values (make-node table-mask new-vector) old-value added))))))))))
-    (insert map (logand #xffffffff (funcall hash key)))))
+    (insert map (logand #xffffffff key-hash))))
 
 
-(defun hashtrie-update (key value tree)
-  "Updates TREE, adding a new key/value binding for KEY or 
-replacing the value associated with a present binding with
-VALUE. Returns the modified tree as primary result value,
-the old value of the pair (if any) as secondary value, and
-a keyword describing what has been done as third value:
-
-:added    a new key/value pair has been added
-:replaced the value of a present pair has been replaced"
-  (multiple-value-bind (hash test make-node empty) (%hashtrie-control tree)
-    (declare (ignore empty))
-    (hashtrie-update* key value tree make-node hash test)))
-
-
-(defun hashtrie-remove* (key map empty-node make-node hash test)
+(defun hashtrie-remove-1 (key key-hash map empty-node make-node test)
   (declare (optimize (speed 3) (debug 0)) 
-           (dynamic-extent hash test))
+           (dynamic-extent test))
   (labels
       ((copy-except (position table-vector)
          (let* ((new-length (- (length table-vector) 1))
@@ -461,147 +423,99 @@ a keyword describing what has been done as third value:
                                    (new-vector (copy-except dispatch table-vector)))
                               (values (make-node new-mask new-vector)
                                       old-value t))))))))))))
-    (hunt-down map (logand #xffffffff (funcall hash key)))))
+    (hunt-down map (logand #xffffffff key-hash))))
 
 
-(defun hashtrie-remove (key tree)
-  "Removes the assocation of KEY from TREE. Returns the 
-modified tree as primary result, the value formerly associated
-with KEY as secondary result, and a boolean flag, which indicates
-whether the KEY was found (and thus, the tree was modified) as
-third value."
-  (multiple-value-bind (hash test make-node empty) (%hashtrie-control tree)
-    (hashtrie-remove* key tree empty make-node hash test)))
+(defgeneric hashtrie-find (key trie &optional default)
+  (:argument-precedence-order trie key))
+
+(defgeneric hashtrie-update (key value trie)
+  (:argument-precedence-order trie key value))
+
+(defgeneric hashtrie-remove (key trie)
+  (:argument-precedence-order trie key))
+  
 
 
-(defmacro define-hashtrie (name &body clauses)
-  ""
-  (labels ((bad-syntax (fmt &rest args)
-             (error "~S: ~?" 'define-hashtrie fmt args))
-           (func-name-p (thing)
-             (and (symbolp thing) thing (not (keywordp thing))))
-           (string-conc (&rest parts)
-             (let ((buffer (make-array 128 :element-type 'character :fill-pointer 0 :adjustable t)))
-               (labels ((add (part)
-                          (etypecase part
-                            (character (vector-push-extend part buffer))
-                            (string (loop :for char :across part :do (vector-push-extend char buffer)))
-                            (symbol (add (symbol-name part)))
-                            (list (map nil #'add part))
-                            (vector (map nil #'add part))
-                            (integer (add (format nil "~D" part))))))
-                 (map nil #'add parts)
-                 (coerce buffer 'simple-string)))))
+(defmacro define-hashtrie (name &body options &environment env)
+  (labels
+      ((the-only-form (clause)
+         (if (and (cadr clause) (null (cddr clause)))
+             (cadr clause)
+             (error "malformed ~S clause ~S" 'define-hashtrie clause)))
+       (the-bindable-symbol (value usage)
+         (if (and (symbolp value) (not (keywordp value)) (not (constantp value env)))
+             value
+             (error "~S cannot be used as ~A" value usage)))
+       (string-concat-1 (value buffer)
+         (cond
+           ((characterp value) (vector-push-extend value buffer))
+           ((symbolp value) (string-concat-1 (symbol-name value) buffer))
+           ((typep value 'sequence) (map nil (lambda (value) (string-concat-1 value buffer)) value))
+           (t (error 'simple-type-error
+                     :datum value :expected-type '(or character symbol string sequence)
+                     :format-control "cannot create a string from ~S" 
+                     :format-arguments (list value)))))
+       (string-concat (&rest value)
+         (let ((buffer (make-array 16 :element-type 'character :adjustable t :fill-pointer 0)))
+           (string-concat-1 value buffer)
+           (coerce buffer 'simple-string))))
+    (let* ((test-function nil)
+           (hash-function nil)
+           (predicate-name nil)
+           (constructor-name nil)
+           (documentation-string nil)
+           (compile-time-info (get name 'hashtrie-compile-time-info))
+           (empty-variable (if compile-time-info (first compile-time-info) (gensym (string-concat "*EMPTY-" name "*"))))
+           (node-constructor (if compile-time-info (second compile-time-info) (gensym (string-concat "MAKE-" name "-NODE")))))
+      (loop
+        :for clause :in options
+        :for (key . more-forms) := clause
+        :do (ecase key
+              ((:documentation) (setf documentation-string (the-only-form clause)))
+              ((:test) (setf test-function (the-only-form clause)))
+              ((:hash) (setf hash-function (the-only-form clause)))
+              ((:predicate) (setf predicate-name (the-bindable-symbol (the-only-form clause) "predicate name")))
+              ((:constructor) (setf constructor-name (the-bindable-symbol (the-only-form clause) "constructor name")))))
+      (let ((actual-constructor (if (null constructor-name) (intern (string-concat "MAKE-" name)) constructor-name))
+            (actual-predicate (if (null predicate-name) (intern (string-concat name (if (position #\- (symbol-name name)) "-P" "P"))) predicate-name)))
+        `(progn
+           
+           (eval-when (:compile-toplevel :load-toplevel :execute)
+             (setf (get ',name 'hashtrie-compile-time-info) (list ',empty-variable ',node-constructor)))
 
-    (unless (and (symbolp name) name (not (keywordp name)))
-      (bad-syntax "type name must be a symbol"))
-    (let* ((missing (cons nil nil))
-           (hash-name missing)
-           (test-name missing)
-           (constructor-name missing)
-           (predicate-name missing)
-           (get-name missing)
-           (update-name missing)
-           (remove-name missing)
-           (conc-name missing)
-           (documentation missing))
-      (macrolet ((check-func-name-clause (var tag)
-                   `(progn
-                      (unless (eq ,var missing) (bad-syntax "multiple ~S clauses found" ,tag))
-                      (unless (func-name-p value) (bad-syntax "the value of ~S must be a symbol: ~S" ,tag value))
-                      (setf ,var value))))
-        (loop
-           :for clause :in clauses
-           :do (destructuring-bind (tag value) clause
-                 (ecase tag
-                   ((:hash) (check-func-name-clause hash-name :hash))
-                   ((:test) (check-func-name-clause test-name :test))
-                   ((:constructor) (check-func-name-clause constructor-name :constructor))
-                   ((:predicate) (check-func-name-clause predicate-name :predicate))
-                   ((:get) (check-func-name-clause get-name :get))
-                   ((:update) (check-func-name-clause update-name :update))
-                   ((:remove) (check-func-name-clause remove-name :remove))
-                   ((:documentation)
-                    (unless (eq documentation missing) (bad-syntax "multiple ~S clauses found" :documentation))
-                    (unless (stringp value) (bad-syntax "the value of the ~S clause must be a string: ~S" :documentation value))
-                    (setf documentation value))
-                   ((:conc-name) 
-                    (unless (eq conc-name missing) (bad-syntax "multiple ~S clauses found" :conc-name))
-                    (unless (or (stringp value) (symbolp value)) (bad-syntax "the value of ~S must be a string or a symbol: ~S" :conc-name value))
-                    (setf conc-name value)))))
-        
-        (when (eq hash-name missing) (setf hash-name 'sxhash))
-        (when (eq test-name missing) (setf test-name 'eql))
-        (unless hash-name (bad-syntax "missing hash function name"))
-        (unless test-name (bad-syntax "missing equality predicate function name"))
+           (defstruct (,name (:conc-name nil)
+                             (:include node)
+                             (:predicate ,actual-predicate)
+                             (:constructor ,node-constructor (node-tag node-payload)))
+             ,@(when documentation-string
+                 (list documentation-string)))
+           
+           (defparameter ,empty-variable (,node-constructor 0 ()))
+           
+           (defun ,actual-constructor (&rest pairs)
+             (loop
+               :with result := ,empty-variable
+               :for (key value) :on pairs :by #'cddr
+               :do (setf result (hashtrie-update-1 key (,hash-function key) value result #',node-constructor #',test-function))
+               :finally (return result)))
 
-        (let* ((conc-name (if (eq conc-name missing) (string-conc name #\-) conc-name))
-               (constructor-name (if (eq constructor-name missing) (intern (string-conc :make #\- name)) constructor-name))
-               (predicate-name (if (eq predicate-name missing) nil predicate-name))
-               (get-name (if (eq get-name missing) (intern (string-conc conc-name :get)) get-name))
-               (update-name (if (eq update-name missing) (intern (string-conc conc-name :update)) update-name))
-               (remove-name (if (eq remove-name missing) (intern (string-conc conc-name :remove)) remove-name))
-               (make-node (intern (format nil "HashTrie-Dont-Use-MAKE-~A" name)))
-               (sconc-name (format nil "HashTrie-Dont-Use-~A-" name))
-               (empty (intern (format nil "*HashTrie-Dont-Use-EMPTY-~A*" name))))
-          
-          (unless constructor-name (bad-syntax "missing constructor function name"))
-          (when (eq documentation missing) (setf documentation nil))
+           (defmethod hashtrie-update (key value (trie ,name))
+             (hashtrie-update-1 key (,hash-function key) value trie #',node-constructor #',test-function))
 
-          `(progn
-             (defstruct (,name
-                          (:conc-name ,sconc-name)
-                          (:constructor ,make-node (tag payload))
-                          ,@(when predicate-name (list `(:predicate ,predicate-name)))
-                          (:include node))
-               ,@(when documentation (list documentation)))
-             
-             (defparameter ,empty (,make-node 0 ()))
-             
-             (defmethod %hashtrie-control ((trie ,name))
-               (values #',hash-name #',test-name #',make-node ,empty))
+           (defmethod hashtrie-find (key (trie ,name) &optional default)
+             (hashtrie-find-1 key (,hash-function key) trie #',test-function default))
 
-             ,@(when get-name
-                 (list
-                  `(declaim (ftype (function (t ,name &optional t) 
-                                             #-sbcl (values t t)) 
-                                   ,get-name))
-                  `(defun ,get-name (key tree &optional default)
-                     (hashtrie-get* key tree #',hash-name #',test-name default))))
-             
-             ,@(when update-name
-                 (list 
-                  `(declaim (ftype (function (t t ,name) 
-                                             #-sbcl (values ,name t)) 
-                                   ,update-name))
-                  `(defun ,update-name (key value tree)
-                     (hashtrie-update* key value tree #',make-node #',hash-name #',test-name))))
-             
-             ,@(when remove-name
-                 (list 
-                  `(declaim (ftype (function (t ,name) 
-                                             #-sbcl (values ,name t t)) 
-                                   ,remove-name))
-                  `(defun ,remove-name (key tree)
-                     (hashtrie-remove* key tree ,empty #',make-node #',hash-name #',test-name))))
-             
-             (declaim (ftype (function (&rest t) (values ,name)) ,constructor-name))
-             (defun ,constructor-name (&rest pairs)
-               (if (null pairs) ,empty
-                   (loop
-                      :with tree := ,empty
-                      :for spine :on pairs :by #'cddr
-                      :for key := (car spine)
-                      :for value := (cadr spine)
-                      :do (setf tree (hashtrie-update* key value tree #',make-node #',hash-name #',test-name))
-                      :finally (return tree))))
+           (defmethod hashtrie-remove (key (trie ,name))
+             (hashtrie-remove-1 key (,hash-function key) trie ,empty-variable #',node-constructor #',test-function)))))))
 
-             ',name))))))
-               
-
+           
+           
 (define-hashtrie simple-hashtrie
-  (:predicate simple-hashtrie-p)
   (:constructor simple-hashtrie)
-  (:documentation "Standard hash trie implementation, which uses
-sxhash as hash function and eql as equality predicate."))
+  (:hash sxhash)
+  (:test eql))
+
+  
+
 

@@ -28,11 +28,10 @@
 (defsystem :darts.lib.hashtree-test
   :name "darts.lib.hashtree-test"
   :licence "MIT"
-  :depends-on ("stefil" "darts.lib.hashtree")
+  :depends-on ("stefil" "darts.lib.hashtrie" "darts.lib.wbtree")
   :components
   ((:module :test
     :components
     ((:file "package") 
-     (:file "hashtree" :depends-on ("package"))
      (:file "hashtrie-tests" :depends-on ("package"))
      (:file "wbtree" :depends-on ("package"))))))

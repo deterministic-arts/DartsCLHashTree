@@ -26,22 +26,9 @@
   (:use "COMMON-LISP")
   (:export 
     "HASHTRIEP" "HASHTRIE-EMPTY-P" "HASHTRIE-FOLD" "HASHTRIE-MAP" 
-    "HASHTRIE-COUNT" "DEFINE-HASHTRIE" "HASHTRIE-CONTROL" "HASHTRIE-GET" 
+    "HASHTRIE-COUNT" "DEFINE-HASHTRIE" "HASHTRIE-CONTROL" "HASHTRIE-FIND" 
     "HASHTRIE-UPDATE" "HASHTRIE-REMOVE" "DO-HASHTRIE" "HASHTRIE-KEYS"
-    "HASHTRIE-VALUES" "HASHTRIE-PAIRS" "SIMPLE-HASHTRIE" "SIMPLE-HASHTRIE-GET" 
-    "SIMPLE-HASHTRIE-UPDATE" "SIMPLE-HASHTRIE-REMOVE")
-
-  ;; The following stuff is deprecated. It is provided here for
-  ;; compatibility with previous versions of this library
-
-  #-no-darts.lib.hashtree1-compatibility
-
-  (:export
-    "MAKE-HASHTREE" "HASHTREE-GET" "HASHTREE-UPDATE" "HASHTREE-REMOVE"
-    "HASHTREE-MAP" "HASHTREE-COUNT" "HASHTREE-TEST" "HASHTREE-HASH"
-    "HASHTREE-EMPTY-P" "HASHTREEP" "HASHTREE-FOLD" "DO-HASHTREE"
-    "HASHTREE-KEYS" "HASHTREE-VALUES" "HASHTREE-PAIRS"
-    "DEFINE-HASHTREE-CONSTRUCTOR" "HASHTREE")
+    "HASHTRIE-VALUES" "HASHTRIE-PAIRS" "SIMPLE-HASHTRIE")
   
   (:documentation "Purely functional hash-based map structure 
 
@@ -65,15 +52,4 @@ hash trees work best with equal based equality (as opposed to eq). Also,
 many Lisp implementations provide weak hash tables, which is not supported
 by hash trees at all."))
 
-
-#-no-darts.lib.hashtree1-compatibility
-(defpackage "DARTS.LIB.HASHTREE"
-  (:use "COMMON-LISP" "DARTS.LIB.HASHTRIE")
-  (:export "MAKE-HASHTREE" "HASHTREE-GET" "HASHTREE-UPDATE" "HASHTREE-REMOVE"
-           "HASHTREE-MAP" "HASHTREE-COUNT" "HASHTREE-TEST" "HASHTREE-HASH"
-           "HASHTREE-EMPTY-P" "HASHTREEP" "HASHTREE-FOLD" "DO-HASHTREE"
-           "HASHTREE-KEYS" "HASHTREE-VALUES" "HASHTREE-PAIRS"
-           "DEFINE-HASHTREE-CONSTRUCTOR" "HASHTREE")
-  (:documentation "Compatibility interface. Note that everything in this
-package is deprecated."))
 

@@ -40,6 +40,4 @@
     ((:module :hashtrie
       :components
       ((:file "packages")
-       (:file "implementation" :depends-on ("packages"))
-       (:file "compatibility" :depends-on ("implementation" "packages"))))))))
-      
+       (:file "implementation" :depends-on ("packages"))))))))

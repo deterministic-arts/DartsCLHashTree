@@ -65,12 +65,12 @@
                   :for count :downfrom iterations :above 0
                   :for key := (random key-range random)
                   :for value := (incf (gethash key reference 0))
-                  :do (setf tree (simple-hashtrie-update key value tree))
+                  :do (setf tree (hashtrie-update key value tree))
                   :finally (return tree))))
     (is (= (hash-table-count reference) (hashtrie-count tree)))
     (is (zerop (loop
                   :for key :being :each :hash-key :in reference :using (:hash-value value)
-                  :for found := (simple-hashtrie-get key tree)
+                  :for found := (hashtrie-find key tree)
                   :counting (not (equal value found)))))
     (loop
        :repeat iterations
@@ -79,15 +79,15 @@
        :if expected
          :do (progn 
                (remhash key reference)
-               (setf tree (simple-hashtrie-remove key tree)))
+               (setf tree (hashtrie-remove key tree)))
        :else
          :do (progn
                (setf (gethash key reference) 1)
-               (setf tree (simple-hashtrie-update key 1 tree))))
+               (setf tree (hashtrie-update key 1 tree))))
     (is (= (hash-table-count reference) (hashtrie-count tree)))
     (is (zerop (loop
                   :for key :being :each :hash-key :in reference :using (:hash-value value)
-                  :for found := (simple-hashtrie-get key tree)
+                  :for found := (hashtrie-find key tree)
                   :counting (not (equal value found)))))))
 
 (deftest tree-iteration ()
@@ -99,7 +99,7 @@
                   :for count :downfrom 1000 :above 0
                   :for key := (random 100000 random)
                   :for value := (incf (gethash key reference 0))
-                  :do (setf tree (simple-hashtrie-update key value tree))
+                  :do (setf tree (hashtrie-update key value tree))
                   :finally (return tree))))
     (let* ((keys-seen (hashtrie-fold ()
                                      (lambda (keys-seen key value)
