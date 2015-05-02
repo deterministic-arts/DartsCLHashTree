@@ -5,11 +5,11 @@ Functional Maps and Trees
 This project provides a few purely functional data structures.
 Right now, it provides:
 
-  - Hash Trees: purely functional map, based on hashing. The
+  - Hash Tries: purely functional map, based on hashing. The
     implementation is derived from Phil Bagwell's paper "Ideal Hash 
     Trees"
 
-  - Property Tree: a purely functional (sorted) map from 
+  - Weight-balanced Tree: a purely functional (sorted) map from 
     strings to arbitrary values. The implementation is derived
     from S. Adams' paper "Implementing Sets Efficiently in a Functional 
     Language"
@@ -32,7 +32,6 @@ Applications can define their own subtypes of the wbtree type, with
 a specialized comparison predicate for the actual key type.
 
 
-
 Hash Tries
 ----------
 
@@ -51,99 +50,52 @@ Defining new hash trie flavours
 
 - macro define-hashtrie name &body clauses ... 
 
-
-Generic API 1 (works on any hash trie)
-.......................................
-
 The following functions are defined for any flavour of hash trie. 
 
-- function hashtriep value => boolean
-- function hashtrie-empty-p trie => boolean
-- function hashtrie-count trie => integer
-- function hashtrie-fold seed function trie => value
-- function hashtrie-map function trie => unspecified
-- function hashtrie-control trie => hash test
+- function `hashtriep value` => `boolean`
 
+  Answers true, if `value` is a hash trie instance, and false
+  otherwise. Note, that concrete hash trie implementations have
+  their own specific predicates, too.
 
-Generic API 2 (works on any hash trie)
-.......................................
+- function `hashtrie-empty-p trie` => `boolean`
 
-The following functions are defined for any flavour of hash trie; 
-they are, however, not usually used, and will certainly be not as
-efficient as using the versions implicitly defined by 
-`define-hashtrie`:
+  Answers true, if hash trie `trie` is empty, and false, if it
+  contains at least one key/value pair.
 
-- function hashtrie-get key trie &optional default => value indicator
-- function hashtrie-update key value trie => new-trie old-value indicator
-- function hashtrie-remove key trie => new-trie old-value indicator
+- function `hashtrie-count trie` => `integer`
 
+  Answers the number of key/value pairs contained in the given
+  hash trie `trie`.
 
-Deprecated API
-...............
+- function `hashtrie-fold seed function trie` => `value`
 
-All functions and macros with `hashtree` in their name (instead
-of `hashtrie` -- note the i vs e) are deprecated. The new interface
-allows you to do almost anything you could do with the old 
-interface, but more efficiently. The most important omission of
-the new interface is the construction of hash tries on the fly
-at run-time. This is still something, you can only do with the
-old API (or some `EVAL` magic, but that's a path I don't want to
-walk...)
+  Invokes `function` for each key/value pair in hash trie `trie`,
+  passing three arguments along: the value returned by the
+  function on the last invocation (or `seed` at the first call),
+  the key, and its associated value. `Hashtrie-fold` returns
+  the value of the last invocation of `function` or `seed`,
+  if the `trie` is empty, and `function` is never called.
 
+- function `hashtrie-map function trie` => `unspecified`
 
+  Invokes `function` once for each key/value pair in `trie`,
+  discarding any results.
 
-Property Trees
----------------
+- function `hashtrie-find key trie &optional default` => `value indicator`
 
-Warning: This package is a now deprecated precursor to the more general
-darts.lib.wbtree package. The package will not suddenly disappear, but
-the nowadays, I am using the more general wbtree package, and keep this
-one only for the legacy code. All future development will happen in wbtree.
+  Answers the value associated with `key` in `trie`, or `default`,
+  if there is no mapping for `key` in `trie`. The secondary value
+  is a boolean indicator, which is true, if the key has been found,
+  and false otherwise.
 
-A property tree is a weight-balanced binary search tree. Right now, the
-implementation only supports string designators as keys. The algorithms
-are easily generalizable, but I could not yet decide on an interface for
-that, and string keys were the only ones, I needed up to now.
+- function `hashtrie-update key value trie` => `new-trie old-value indicator`
 
-Since property trees are actually ordered, all iteration functions (like
-`ptree-map`, `ptree-fold`, ...) iterate over the entries of a property 
-tree in proper key order. Likewise, collector functions like `ptree-keys`,
-`ptree-values`, ... will always yield the elements in proper key order.
+  Answers a copy of `trie`, in which `key` is associated with
+  `value`. 
 
-- `ptreep value` => `flag`
-- `empty-ptree-p tree` => `flag`
-- `ptree-size tree` => `integer`
-- `ptree-key tree` => `value`
-- `ptree-value tree` => `value`
-- `ptree-left tree` => `ptree`
-- `ptree-right tree` => `ptree`
-- `ptree-minimum tree` => `ptree`
-- `ptree-maximum tree` => `ptree`
-- `ptree-smallest key tree` => `ptree`
-- `ptree-largest key tree` => `ptree`
-- `ptree-get key tree &optional default` => `value`, `flag`
-- `ptree-insert key value tree &optional test` => `ptree`, `flag`
-- `ptree-update key tree mutator` => `ptree`, `flag`
-- `ptree-remove key tree` => `ptree`, `flag`
-- `ptree-map function tree &key direction collectp start end` => `value`
-- `ptree-fold function seed tree &key direction start end` => `value`
-- `ptree-pairs tree` => `list`
-- `ptree-keys tree` => `list`
-- `ptree-values tree` => `list`
-- `ptree-intersection tree1 tree2` => `ptree`
-- `ptree-union tree1 tree2` => `ptree`
-- `ptree-difference tree1 tree2` => `ptree`
-- `ptree-iterator tree` => `function`
-- `ptree-equal tree1 tree2` => `boolean`
-- `ptree &rest pairs` => `ptree`
+- function `hashtrie-remove key trie` => `new-trie old-value indicator`
 
-
-Future Plans
--------------
-
-- Generalization of the property tree code to arbitrary `<`-style
-  comparison predicates
-
-- Homogenization of the hashtree and ptree interfaces (e.g., `ptree-update`
-  vs. `ptree-insert` vs. `hashtree-update`)
+  Answers a copy of `trie`, from which any association of `key`
+  has been removed.
 
