@@ -1,6 +1,6 @@
 #|                                           -*- mode: lisp; coding: utf-8 -*-
   Deterministic Arts -- Hash Tree
-  Copyright (c) 2013 Dirk Esser
+  Copyright (c) 2013, 2015 Dirk Esser
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,8 @@
     "HASHTRIEP" "HASHTRIE-EMPTY-P" "HASHTRIE-FOLD" "HASHTRIE-MAP" 
     "HASHTRIE-COUNT" "DEFINE-HASHTRIE" "HASHTRIE-CONTROL" "HASHTRIE-FIND" 
     "HASHTRIE-UPDATE" "HASHTRIE-REMOVE" "DO-HASHTRIE" "HASHTRIE-KEYS"
-    "HASHTRIE-VALUES" "HASHTRIE-PAIRS" "SIMPLE-HASHTRIE")
+    "HASHTRIE-VALUES" "HASHTRIE-PAIRS" "SIMPLE-HASHTRIE" "MAKE-SIMPLE-HASHTRIE"
+    "SIMPLE-HASHTRIE-P")
   
   (:documentation "Purely functional hash-based map structure 
 

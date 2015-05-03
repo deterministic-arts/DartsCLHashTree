@@ -57,7 +57,8 @@ Defining new hash trie flavours
     Declares `function` as the function, which computes 
     the hash values. The `function` must be name a function
     taking a single argument and returning a positive integer
-    in the range of `(unsigned-byte 32)`.
+    in the range of `(unsigned-byte 32)` (well, the implementation
+    uses the bottom-most 32 bits only...).
 
     The default hash function is `sxhash`.
 
@@ -73,10 +74,34 @@ Defining new hash trie flavours
     of) `(typep ... 'name)` to test, whether a value is an
     instance of the newly defined hash trie type.
 
+    You can use `nil` as `name` in order to suppress the 
+    generation of an additional type predicate. By using `t`
+    as name, you get a predicate with the default name (which
+    is also the standard behaviour)
+
   - `(:constructor name)`
 
     Declares the name of the generated standard constructor 
-    to be `name`.
+    to be `name`. The constructor is a function of a single
+    optional argument, which is a list of key/value pairs in
+    property list style. The default constructor is named
+    `make-NAME`. You may generate a constructor with the
+    default name by omitting this option or using a name of
+    `t`. By specifying this option with a name of `nil`, you
+    can suppress the generation of a constructor function.
+
+  - `(:spread-constructor name)`
+
+    Declares the name of the generated "spread" constructor.
+    This function is just like the regular constructor above,
+    but takes the initial members as `&rest` argument. The
+    default is to not generate a spread constructor, unless
+    this option is specified explicitly.
+
+    If you use a name of `t`, the spread constructor is
+    generated using its default name, which is `make-NAME*`.
+    By giving a name of `nil` (the default), generation of
+    the spread constructor is disabled.
 
   - `(:documentation string)`
 
@@ -97,6 +122,11 @@ Defining new hash trie flavours
         (:documentation "A simple hash trie, whose keys
           are integers. We use the keys directly as their
           own hashes."))
+
+  Note, that the values given to the `:test` and `:hash` options
+  must both be suitable for having `function` wrapped around them.
+  Literal `lambda` expressions are ok, and so are symbols naming
+  functions.
 
 - function `hashtriep value` => `boolean`
 
@@ -166,3 +196,14 @@ Defining new hash trie flavours
   Answers a copy of `trie`, from which any association of `key`
   has been removed.
 
+- macro `do-hashtrie (key value trie) &body body => whatever
+
+  Enumerates the key/value pairs in the hash trie, form `trie`
+  evaluates to. In each iteration, `key` and `value` are bound
+  to each pair's key and value, and the forms in `body` are
+  evaluated sequentially with these bindings in place.
+
+  The whole expansion is wrapped into an anonymous `block`,
+  allowing the `body` to abort the iteration by using `return`.
+  This is the only way to provide a non-nil result value for
+  the whole `do-hashtrie` form.

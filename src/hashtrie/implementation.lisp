@@ -1,6 +1,6 @@
 #|                                           -*- mode: lisp; coding: utf-8 -*-
   Deterministic Arts -- Hash Tree
-  Copyright (c) 2015 Dirk Esser
+  Copyright (c) 2013, 2015 Dirk Esser
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -435,92 +435,6 @@ in the same order."
 (defgeneric hashtrie-remove (key trie)
   (:argument-precedence-order trie key))
   
-
-
-(defmacro define-hashtrie (name &body options &environment env)
-  (labels
-      ((the-only-form (clause)
-         (if (and (cadr clause) (null (cddr clause)))
-             (cadr clause)
-             (error "malformed ~S clause ~S" 'define-hashtrie clause)))
-       (the-bindable-symbol (value usage)
-         (if (and (symbolp value) (not (keywordp value)) (not (constantp value env)))
-             value
-             (error "~S cannot be used as ~A" value usage)))
-       (string-concat-1 (value buffer)
-         (cond
-           ((characterp value) (vector-push-extend value buffer))
-           ((symbolp value) (string-concat-1 (symbol-name value) buffer))
-           ((typep value 'sequence) (map nil (lambda (value) (string-concat-1 value buffer)) value))
-           (t (error 'simple-type-error
-                     :datum value :expected-type '(or character symbol string sequence)
-                     :format-control "cannot create a string from ~S" 
-                     :format-arguments (list value)))))
-       (string-concat (&rest value)
-         (let ((buffer (make-array 16 :element-type 'character :adjustable t :fill-pointer 0)))
-           (string-concat-1 value buffer)
-           (coerce buffer 'simple-string))))
-    (let* ((test-function nil)
-           (hash-function nil)
-           (predicate-name nil)
-           (constructor-name nil)
-           (documentation-string nil)
-           (compile-time-info (get name 'hashtrie-compile-time-info))
-           (empty-variable (if compile-time-info (first compile-time-info) (gensym (string-concat "*EMPTY-" name "*"))))
-           (node-constructor (if compile-time-info (second compile-time-info) (gensym (string-concat "MAKE-" name "-NODE")))))
-      (loop
-        :for clause :in options
-        :for (key . more-forms) := clause
-        :do (ecase key
-              ((:documentation) (setf documentation-string (the-only-form clause)))
-              ((:test) (setf test-function (the-only-form clause)))
-              ((:hash) (setf hash-function (the-only-form clause)))
-              ((:predicate) (setf predicate-name (the-bindable-symbol (the-only-form clause) "predicate name")))
-              ((:constructor) (setf constructor-name (the-bindable-symbol (the-only-form clause) "constructor name")))))
-      (let ((actual-constructor (if (null constructor-name) (intern (string-concat "MAKE-" name)) constructor-name))
-            (actual-predicate (if (null predicate-name) (intern (string-concat name (if (position #\- (symbol-name name)) "-P" "P"))) predicate-name))
-            (trie (gensym))
-            (key (gensym))
-            (value (gensym))
-            (default (gensym))
-            (pairs (gensym)))
-        `(progn
-           
-           (eval-when (:compile-toplevel :load-toplevel :execute)
-             (setf (get ',name 'hashtrie-compile-time-info) (list ',empty-variable ',node-constructor)))
-
-           (defstruct (,name (:conc-name nil)
-                             (:include node)
-                             (:predicate ,actual-predicate)
-                             (:constructor ,node-constructor (node-tag node-payload)))
-             ,@(when documentation-string
-                 (list documentation-string)))
-           
-           (defparameter ,empty-variable (,node-constructor 0 ()))
-           
-           (defun ,actual-constructor (&rest ,pairs)
-             (loop
-               :with ,trie := ,empty-variable
-               :for (,key ,value) :on ,pairs :by #'cddr
-               :do (setf ,trie (hashtrie-update-1 ,key (,hash-function ,key) ,value ,trie #',node-constructor #',test-function))
-               :finally (return ,trie)))
-
-           (defmethod hashtrie-update (,key ,value (,trie ,name))
-             (hashtrie-update-1 ,key (,hash-function ,key) ,value ,trie #',node-constructor #',test-function))
-
-           (defmethod hashtrie-find (,key (,trie ,name) &optional ,default)
-             (hashtrie-find-1 ,key (,hash-function ,key) ,trie #',test-function ,default))
-
-           (defmethod hashtrie-remove (,key (,trie ,name))
-             (hashtrie-remove-1 ,key (,hash-function ,key) ,trie ,empty-variable #',node-constructor #',test-function)))))))
-
-           
-           
-(define-hashtrie simple-hashtrie
-  (:constructor simple-hashtrie)
-  (:hash sxhash)
-  (:test eql))
-
   
 (define-setf-expander hashtrie-find (key-form place &optional (default nil have-default)
                                      &environment env)
@@ -542,4 +456,114 @@ in the same order."
                      ,value-temp)
                   `(hashtrie-find ,key-temp ,getter ,@(when have-default (list default-temp))))))))
 
+
+(defmacro define-hashtrie (name &body options &environment env)
+  (labels
+      ((the-only-form (clause)
+         (if (and (cadr clause) (null (cddr clause)))
+             (cadr clause)
+             (error "malformed ~S clause ~S" 'define-hashtrie clause)))
+       (the-defaultable-name (value usage)
+         (if (and (symbolp value) (not (keywordp value)) (or (member value '(nil t)) (not (constantp value env))))
+             value
+             (error "~S cannot be used as ~A" value usage)))
+       (the-bindable-symbol (value usage)
+         (if (and (symbolp value) (not (keywordp value)) (not (constantp value env)))
+             value
+             (error "~S cannot be used as ~A" value usage)))
+       (string-concat-1 (value buffer)
+         (cond
+           ((characterp value) (vector-push-extend value buffer))
+           ((symbolp value) (string-concat-1 (symbol-name value) buffer))
+           ((typep value 'sequence) (map nil (lambda (value) (string-concat-1 value buffer)) value))
+           (t (error 'simple-type-error
+                     :datum value :expected-type '(or character symbol string sequence)
+                     :format-control "cannot create a string from ~S" 
+                     :format-arguments (list value)))))
+       (string-concat (&rest value)
+         (let ((buffer (make-array 16 :element-type 'character :adjustable t :fill-pointer 0)))
+           (string-concat-1 value buffer)
+           (coerce buffer 'simple-string))))
+    (let* ((test-function nil)
+           (hash-function nil)
+           (predicate-name t)
+           (constructor-name t)
+           (spread-constructor-name nil)
+           (documentation-string nil)
+           (compile-time-info (get name 'hashtrie-compile-time-info))
+           (empty-variable (if compile-time-info (first compile-time-info) (gensym (string-concat "*EMPTY-" name "*"))))
+           (node-constructor (if compile-time-info (second compile-time-info) (gensym (string-concat "MAKE-" name "-NODE")))))
+      (loop
+        :for clause :in options
+        :for (key . more-forms) := clause
+        :do (ecase key
+              ((:documentation) (setf documentation-string (the-only-form clause)))
+              ((:test) (setf test-function (the-only-form clause)))
+              ((:hash) (setf hash-function (the-only-form clause)))
+              ((:predicate) (setf predicate-name (the-defaultable-name (the-only-form clause) "predicate name")))
+              ((:spread-constructor) (setf spread-constructor-name (the-defaultable-name (the-only-form clause) "spread constructor name")))
+              ((:constructor) (setf constructor-name (the-defaultable-name (the-only-form clause) "constructor name")))))
+      (let ((actual-constructor (cond 
+                                  ((eq constructor-name 't) (intern (string-concat "MAKE-" name)))
+                                  ((null constructor-name) nil)
+                                  (t constructor-name)))
+            (actual-spread-constructor (cond 
+                                         ((eq spread-constructor-name 't) (intern (string-concat "MAKE-" name "*")))
+                                         ((null spread-constructor-name) nil)
+                                         (t spread-constructor-name)))
+            (actual-predicate (cond
+                                ((eq predicate-name t) (intern (string-concat name (if (position #\- (symbol-name name)) "-P" "P"))))
+                                ((null predicate-name) nil)
+                                (t predicate-name)))
+            (trie (gensym))
+            (key (gensym))
+            (value (gensym))
+            (default (gensym))
+            (pairs (gensym)))
+        `(progn
+           
+           (eval-when (:compile-toplevel :load-toplevel :execute)
+             (setf (get ',name 'hashtrie-compile-time-info) (list ',empty-variable ',node-constructor)))
+
+           (defstruct (,name (:conc-name nil)
+                             (:include node)
+                             ,@(when actual-predicate `((:predicate ,actual-predicate)))
+                             (:constructor ,node-constructor (node-tag node-payload)))
+             ,@(when documentation-string
+                 (list documentation-string)))
+           
+           (defparameter ,empty-variable (,node-constructor 0 ()))
+           
+           ,@(when actual-constructor
+               (list `(defun ,actual-constructor (&optional ,pairs)
+                        (loop
+                          :with ,trie := ,empty-variable
+                          :for (,key ,value) :on ,pairs :by #'cddr
+                          :do (setf ,trie (hashtrie-update-1 ,key (,hash-function ,key) ,value ,trie #',node-constructor #',test-function))
+                          :finally (return ,trie)))))
+
+           ,@(when actual-spread-constructor
+               (list `(defun ,actual-spread-constructor (&rest ,pairs)
+                        (loop
+                          :with ,trie := ,empty-variable
+                          :for (,key ,value) :on ,pairs :by #'cddr
+                          :do (setf ,trie (hashtrie-update-1 ,key (,hash-function ,key) ,value ,trie #',node-constructor #',test-function))
+                          :finally (return ,trie)))))
+
+           (defmethod hashtrie-update (,key ,value (,trie ,name))
+             (hashtrie-update-1 ,key (,hash-function ,key) ,value ,trie #',node-constructor #',test-function))
+
+           (defmethod hashtrie-find (,key (,trie ,name) &optional ,default)
+             (hashtrie-find-1 ,key (,hash-function ,key) ,trie #',test-function ,default))
+
+           (defmethod hashtrie-remove (,key (,trie ,name))
+             (hashtrie-remove-1 ,key (,hash-function ,key) ,trie ,empty-variable #',node-constructor #',test-function)))))))
+
+           
+           
+(define-hashtrie simple-hashtrie
+  (:constructor make-simple-hashtrie)
+  (:spread-constructor simple-hashtrie)
+  (:hash sxhash)
+  (:test eql))
 
