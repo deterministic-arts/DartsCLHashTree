@@ -986,3 +986,24 @@
 
 (defun wbtree-upper-boundary-node (key tree)
   (wbtree-ceiling-node key tree))
+
+
+(define-setf-expander wbtree-find (key-form place &optional (default nil have-default)
+                                   &environment env)
+  (multiple-value-bind (vars vals newval setter getter) (get-setf-expansion place env)
+    (let ((key-temp (gensym))
+          (default-temp (if have-default (gensym) nil))
+          (value-temp (gensym))
+          (new-value (car newval)))
+      (if (cdr newval) (error "cannot expand form")
+          (values (if have-default
+                      (list* key-temp default-temp vars)
+                      (cons key-temp vars))
+                  (if have-default
+                      (list* key-form default vals)
+                      (cons key-form vals))
+                  (list value-temp)
+                  `(let ((,new-value (wbtree-update ,key-temp ,value-temp ,getter)))
+                     ,setter
+                     ,value-temp)
+                  `(wbtree-find ,key-temp ,getter ,@(when have-default (list default-temp))))))))
