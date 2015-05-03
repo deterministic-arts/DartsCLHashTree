@@ -479,8 +479,8 @@
                          (end-in (or (not have-end) (lessp (node-key node) end))))
                      (when start-in
                        (walk-forward (node-left node))
-                       (when end-in (reduce-node node))
-                     (when end-in (walk-forward (node-right node)))))))
+                       (when end-in (reduce-node node)))
+                     (when end-in (walk-forward (node-right node))))))
                (walk-backward (node)
                  (unless (wbtree-empty-p node)
                    (let ((start-in (not (and have-start (lessp start (node-key node)))))
@@ -848,6 +848,7 @@
           (and (consp (car rest)) (not (keywordp (caar rest)))))
       `(define-wbtree-really ,name
          (:test ,(car rest))
+         (:constructor nil)
          (:spread-constructor ,name)
          ,@(when (cdr rest) `((:documentation ,(cadr rest)))))
       `(define-wbtree-really ,name ,@rest)))
