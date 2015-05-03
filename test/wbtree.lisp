@@ -23,7 +23,9 @@
 
 (in-package "DARTS.LIB.WBTREE.TEST")
 
-(define-wbtree inttree <)
+(define-wbtree inttree 
+  (:test <)
+  (:spread-constructor inttree))
 
 (in-root-suite)
 
