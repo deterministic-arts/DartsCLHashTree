@@ -752,91 +752,77 @@
 
 (defgeneric wbtree-check-invariants (tree))
 
-
-
-
-
-
-#-(and)
-(progn
-  
-  (defun wbtree-rebalance (tree)
-    "Generates a fully balanced tree from `tree'. This function answers a
+(defgeneric wbtree-rebalance (tree)
+  (:documentation "Generates a fully balanced tree from `tree'. This function answers a
    tree of the same kind as `tree', which contains the same key/value pairs
    as `tree'. However, the copy returned is fully balanced. Note, that this
-   optimization often does not really pay off."
-    (let* ((size (wbtree-size tree))
-           (array (make-array size :element-type t :adjustable nil :fill-pointer nil)))
-      (let ((pointer 0))
-        (wbtree-map (lambda (node)
-                      (setf (aref array pointer) node)
-                      (incf pointer))
-                    tree))
-      (multiple-value-bind (unused constructor empty) (wbtree-information tree)
-        (declare (ignore unused))
-        (labels ((recurse (start end)
-                   (let ((count (- end start)))
-                     (cond 
-                       ((not (plusp count)) empty)
-                       ((= count 1) 
-                        (let* ((node (aref array start))
-                               (key (node-key node))
-                               (value (node-value node)))
-                          (funcall constructor key value empty empty)))
-                       ((= count 2)
-                        (let* ((inner (aref array start))
-                               (inner-key (node-key inner))
-                               (inner-value (node-value inner))
-                               (outer (aref array (1+ start)))
-                               (outer-key (node-key outer))
-                               (outer-value (node-value outer)))
-                          (funcall constructor inner-key inner-value empty
-                                   (funcall constructor outer-key outer-value empty empty 1)
-                                   2)))
-                       (t (let* ((middle (ash (+ start end) -1))
-                                 (node (aref array middle))
-                                 (key (node-key node))
-                                 (value (node-value node))
-                                 (right (recurse (1+ middle) end))
-                                 (left (recurse start middle)))
-                            (funcall constructor key value 
-                                     left right)))))))
-          (recurse 0 size)))))
+   optimization often does not really pay off."))
 
-  (defun wbtree-load-form (tree constructor-cell empty-cell)
+
+(defun wbtree-rebalance-1 (tree constructor empty)
+  (let* ((size (wbtree-size tree))
+         (array (make-array size :element-type t :adjustable nil :fill-pointer nil)))
+    (let ((pointer 0))
+      (wbtree-map (lambda (node)
+                    (setf (aref array pointer) node)
+                    (incf pointer))
+                  tree))
+    (labels ((recurse (start end)
+               (let ((count (- end start)))
+                 (cond 
+                   ((not (plusp count)) empty)
+                   ((= count 1) 
+                    (let* ((node (aref array start))
+                           (key (node-key node))
+                           (value (node-value node)))
+                      (funcall constructor key value empty empty)))
+                   ((= count 2)
+                    (let* ((inner (aref array start))
+                           (inner-key (node-key inner))
+                           (inner-value (node-value inner))
+                           (outer (aref array (1+ start)))
+                           (outer-key (node-key outer))
+                           (outer-value (node-value outer)))
+                      (funcall constructor inner-key inner-value empty
+                               (funcall constructor outer-key outer-value empty empty 1)
+                               2)))
+                   (t (let* ((middle (ash (+ start end) -1))
+                             (node (aref array middle))
+                             (key (node-key node))
+                             (value (node-value node))
+                             (right (recurse (1+ middle) end))
+                             (left (recurse start middle)))
+                        (funcall constructor key value 
+                                 left right)))))))
+      (recurse 0 size))))
+
+
+(defun wbtree-load-form (tree constructor-cell empty-cell)
   ;;; I am not sure, whether this whole rebalancing business is actually
   ;;; a good idea. It would be simpler to just generate the moral equivalent
   ;;; of make-load-form-saving-slots.
-    (let* ((size (node-count tree))
-           (array (make-array size :fill-pointer 0)))
-      (wbtree-map (lambda (node) (vector-push-extend node array)) tree)
-      (labels
-          ((recurse (start end)
-             (let ((count (- end start)))
-               (cond
-                 ((not (plusp count)) empty-cell)
-                 ((= count 1)
-                  (let* ((node (aref array start))
+  (let* ((size (node-count tree))
+         (array (make-array size :fill-pointer 0)))
+    (wbtree-map (lambda (node) (vector-push-extend node array)) tree)
+    (labels
+        ((recurse (start end)
+           (let ((count (- end start)))
+             (cond
+               ((not (plusp count)) empty-cell)
+               ((= count 1)
+                (let* ((node (aref array start))
+                       (key (node-key node))
+                       (value (node-value node)))
+                  `(,constructor-cell ',key ',value ,empty-cell ,empty-cell 1)))
+               (t (let* ((middle (ash (+ start end) -1))
+                         (node (aref array middle))
                          (key (node-key node))
                          (value (node-value node)))
-                    `(,constructor-cell ',key ',value ,empty-cell ,empty-cell 1)))
-                 (t (let* ((middle (ash (+ start end) -1))
-                           (node (aref array middle))
-                           (key (node-key node))
-                           (value (node-value node)))
-                      `(,constructor-cell ',key ',value 
-                                          ,(recurse start middle)
-                                          ,(recurse (1+ middle) end))))))))
-        (recurse 0 size))))
-                                     
-  (defmethod make-load-form ((tree wbtree) &optional environment)
-    (declare (ignore environment))
-    (multiple-value-bind (unused-1 unused-2 unused-3 type-name) (wbtree-information tree)
-      (declare (ignore unused-3 unused-2 unused-1))
-      (let ((properties (get type-name 'wbtree-information)))
-        (if (not properties)
-            (error "could not find compile-time information about ~S" tree)
-            (wbtree-load-form tree (car properties) (cdr properties)))))))
+                    `(,constructor-cell ',key ',value 
+                                        ,(recurse start middle)
+                                        ,(recurse (1+ middle) end))))))))
+      (recurse 0 size))))
+
 
 
 (defmacro define-wbtree (name &body rest)
@@ -980,6 +966,13 @@
 
            (defmethod wbtree-check-invariants ((,tree-var ,name))
              (wbtree-check-invariants-1 ,tree-var #',lessp-function))
+
+           (defmethod wbtree-rebalance ((,tree-var ,name))
+             (wbtree-rebalance-1 ,tree-var #',node-constructor ,empty-node))
+
+           (defmethod make-load-form ((,tree-var ,name) &optional environment)
+             (declare (ignore environment))
+             (wbtree-load-form ,tree-var ',node-constructor ',empty-node))
 
            (defmethod wbtree-equal ((,tree-var ,name) (,other-tree-var ,name) &key ((:test ,test-var) #'eql))
              (wbtree-equal-1 ,tree-var ,other-tree-var ,test-var #',lessp-function)))))))
