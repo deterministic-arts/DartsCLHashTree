@@ -528,7 +528,8 @@ in the same order."
            (eval-when (:compile-toplevel :load-toplevel :execute)
              (setf (get ',name 'hashtrie-compile-time-info) (list ',empty-variable ',node-constructor)))
 
-           (defstruct (,name (:conc-name nil)
+           (defstruct (,name (:conc-name nil) 
+                             (:copier nil)
                              (:include node)
                              ,@(when actual-predicate `((:predicate ,actual-predicate)))
                              (:constructor ,node-constructor (node-tag node-payload)))
