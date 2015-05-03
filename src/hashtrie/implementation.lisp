@@ -484,12 +484,13 @@ in the same order."
          (let ((buffer (make-array 16 :element-type 'character :adjustable t :fill-pointer 0)))
            (string-concat-1 value buffer)
            (coerce buffer 'simple-string))))
-    (let* ((test-function nil)
-           (hash-function nil)
+    (let* ((test-function 'eql)
+           (hash-function 'sxhash)
            (predicate-name t)
            (constructor-name t)
            (spread-constructor-name nil)
            (documentation-string nil)
+           (key-transformation nil)
            (compile-time-info (get name 'hashtrie-compile-time-info))
            (empty-variable (if compile-time-info (first compile-time-info) (gensym (string-concat "*EMPTY-" name "*"))))
            (node-constructor (if compile-time-info (second compile-time-info) (gensym (string-concat "MAKE-" name "-NODE")))))
@@ -500,26 +501,28 @@ in the same order."
               ((:documentation) (setf documentation-string (the-only-form clause)))
               ((:test) (setf test-function (the-only-form clause)))
               ((:hash) (setf hash-function (the-only-form clause)))
+              ((:key) (setf key-transformation (the-only-form clause)))
               ((:predicate) (setf predicate-name (the-defaultable-name (the-only-form clause) "predicate name")))
               ((:spread-constructor) (setf spread-constructor-name (the-defaultable-name (the-only-form clause) "spread constructor name")))
               ((:constructor) (setf constructor-name (the-defaultable-name (the-only-form clause) "constructor name")))))
-      (let ((actual-constructor (cond 
-                                  ((eq constructor-name 't) (intern (string-concat "MAKE-" name)))
-                                  ((null constructor-name) nil)
-                                  (t constructor-name)))
-            (actual-spread-constructor (cond 
-                                         ((eq spread-constructor-name 't) (intern (string-concat "MAKE-" name "*")))
-                                         ((null spread-constructor-name) nil)
-                                         (t spread-constructor-name)))
-            (actual-predicate (cond
-                                ((eq predicate-name t) (intern (string-concat name (if (position #\- (symbol-name name)) "-P" "P"))))
-                                ((null predicate-name) nil)
-                                (t predicate-name)))
-            (trie (gensym))
-            (key (gensym))
-            (value (gensym))
-            (default (gensym))
-            (pairs (gensym)))
+      (let* ((actual-constructor (cond 
+                                   ((eq constructor-name 't) (intern (string-concat "MAKE-" name)))
+                                   ((null constructor-name) nil)
+                                   (t constructor-name)))
+             (actual-spread-constructor (cond 
+                                          ((eq spread-constructor-name 't) (intern (string-concat "MAKE-" name "*")))
+                                          ((null spread-constructor-name) nil)
+                                          (t spread-constructor-name)))
+             (actual-predicate (cond
+                                 ((eq predicate-name t) (intern (string-concat name (if (position #\- (symbol-name name)) "-P" "P"))))
+                                 ((null predicate-name) nil)
+                                 (t predicate-name)))
+             (trie (gensym))
+             (key (gensym))
+             (value (gensym))
+             (default (gensym))
+             (pairs (gensym))
+             (raw-key (if key-transformation (gensym) key)))
         `(progn
            
            (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -538,7 +541,8 @@ in the same order."
                (list `(defun ,actual-constructor (&optional ,pairs)
                         (loop
                           :with ,trie := ,empty-variable
-                          :for (,key ,value) :on ,pairs :by #'cddr
+                          :for (,raw-key ,value) :on ,pairs :by #'cddr
+                          ,@(when key-transformation `(:for ,key := (,key-transformation ,raw-key)))
                           :do (setf ,trie (hashtrie-update-1 ,key (,hash-function ,key) ,value ,trie #',node-constructor #',test-function))
                           :finally (return ,trie)))))
 
@@ -546,18 +550,29 @@ in the same order."
                (list `(defun ,actual-spread-constructor (&rest ,pairs)
                         (loop
                           :with ,trie := ,empty-variable
-                          :for (,key ,value) :on ,pairs :by #'cddr
+                          :for (,raw-key ,value) :on ,pairs :by #'cddr
+                          ,@(when key-transformation `(:for ,key := (,key-transformation ,raw-key)))
                           :do (setf ,trie (hashtrie-update-1 ,key (,hash-function ,key) ,value ,trie #',node-constructor #',test-function))
                           :finally (return ,trie)))))
 
-           (defmethod hashtrie-update (,key ,value (,trie ,name))
-             (hashtrie-update-1 ,key (,hash-function ,key) ,value ,trie #',node-constructor #',test-function))
+           (defmethod hashtrie-update (,raw-key ,value (,trie ,name))
+             ,(if (not key-transformation)
+                  `(hashtrie-update-1 ,key (,hash-function ,key) ,value ,trie #',node-constructor #',test-function)
+                  `(let ((,key (,key-transformation ,raw-key)))
+                     (hashtrie-update-1 ,key (,hash-function ,key) ,value ,trie #',node-constructor #',test-function))))
 
-           (defmethod hashtrie-find (,key (,trie ,name) &optional ,default)
-             (hashtrie-find-1 ,key (,hash-function ,key) ,trie #',test-function ,default))
+           (defmethod hashtrie-find (,raw-key (,trie ,name) &optional ,default)
+             ,(if (not key-transformation)
+                  `(hashtrie-find-1 ,key (,hash-function ,key) ,trie #',test-function ,default)
+                  `(let ((,key (,key-transformation ,raw-key)))
+                     (hashtrie-find-1 ,key (,hash-function ,key) ,trie #',test-function ,default))))
 
-           (defmethod hashtrie-remove (,key (,trie ,name))
-             (hashtrie-remove-1 ,key (,hash-function ,key) ,trie ,empty-variable #',node-constructor #',test-function)))))))
+           (defmethod hashtrie-remove (,raw-key (,trie ,name))
+             ,(if (not key-transformation)
+                  `(hashtrie-remove-1 ,key (,hash-function ,key) ,trie ,empty-variable #',node-constructor #',test-function)
+                  `(let ((,key (,key-transformation ,raw-key)))
+                     (hashtrie-remove-1 ,key (,hash-function ,key) ,trie ,empty-variable #',node-constructor 
+                                        #',test-function)))))))))
 
            
            
@@ -566,4 +581,3 @@ in the same order."
   (:spread-constructor simple-hashtrie)
   (:hash sxhash)
   (:test eql))
-

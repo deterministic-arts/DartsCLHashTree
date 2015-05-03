@@ -45,9 +45,6 @@ function is `sxhash`.
 
 The implementation of hash tries can be found in package `DARTS.LIB.HASHTRIE`.
 
-Defining new hash trie flavours
-................................
-
 - macro define-hashtrie name &body clauses ... 
 
   Supported clauses are:
@@ -66,6 +63,25 @@ Defining new hash trie flavours
 
     Declares the function used to test, whether two keys are
     equal. The default test function is `eql`.
+
+  - `(:key function)`
+
+    Declares a transformation function, which is applied
+    to all user-supplied hash key value prior to hashing. The
+    function's result is what gets actually used as the hash
+    key. Note, that if a key transformation is supplied, the
+    original input value is not used or stored by the hash
+    trie (except initially, when it is passed as argument to
+    the transformation function).
+
+    Example:
+
+        (define-hashtrie uppercase-htrie
+          (:test string=)
+          (:key string-upcase))
+
+        (setf *x* (make-uppercase-htrie (list "foo" "value-of-FOO" #\A "value-of-A" t "value-of-T")))
+        (hashtrie-find #\t *x*)  ;; => "value-of-T"
 
   - `(:predicate name)`
 
