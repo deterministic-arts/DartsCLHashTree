@@ -78,7 +78,25 @@ Defining new hash trie flavours
     Declares the name of the generated standard constructor 
     to be `name`.
 
-The following functions are defined for any flavour of hash trie. 
+  - `(:documentation string)`
+
+    Adds the given `string` as documentation string to the
+    structure type definition, the macro expands into.
+
+  After this macro's expansion has been evaluated, `name` 
+  names a valid lisp structure type; in particular, the
+  name can be used with `typep` as well as for CLOS method
+  dispatch.
+
+  Example:
+
+      (define-hashtrie integer-htrie
+        (:hash identity)
+        (:test eql)
+        (:constructor make-integer-htrie)
+        (:documentation "A simple hash trie, whose keys
+          are integers. We use the keys directly as their
+          own hashes."))
 
 - function `hashtriep value` => `boolean`
 
@@ -116,6 +134,27 @@ The following functions are defined for any flavour of hash trie.
   if there is no mapping for `key` in `trie`. The secondary value
   is a boolean indicator, which is true, if the key has been found,
   and false otherwise.
+
+  This function defines a `setf` form just in the `ldb` (for example)
+  does, i.e., if used with `setf`, the `trie` must indicate a valid
+  place, which gets updated to hold the updated trie.
+
+      (defvar *trie* (simple-hashtrie))
+      
+      ;; The trie is initially empty (no parameters have been 
+      ;; handed down to the constructor).
+
+      (hashtrie-find 1 *trie*)                 ;; Yields nil as 
+                                               ;; result value
+
+      (setf (hashtrie-find 1 *trie*) "First")  ;; Yields "First" as
+                                               ;; result value
+
+      ;; Now, the hash trie has been updated to contain a
+      ;; mapping with key 1
+
+      (hashtrie-find 1 *trie*)                 ;; Yields "First" as
+                                               ;; result value
 
 - function `hashtrie-update key value trie` => `new-trie old-value indicator`
 

@@ -1,6 +1,6 @@
 #|                                           -*- mode: lisp; coding: utf-8 -*-
   Deterministic Arts -- Hash Tree
-  Copyright (c) 2013 Dirk Esser
+  Copyright (c) 2015 Dirk Esser
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -522,5 +522,24 @@ in the same order."
   (:test eql))
 
   
+(define-setf-expander hashtrie-find (key-form place &optional (default nil have-default)
+                                     &environment env)
+  (multiple-value-bind (vars vals newval setter getter) (get-setf-expansion place env)
+    (let ((key-temp (gensym))
+          (default-temp (if have-default (gensym) nil))
+          (value-temp (gensym))
+          (new-value (car newval)))
+      (if (cdr newval) (error "cannot expand form")
+          (values (if have-default
+                      (list* key-temp default-temp vars)
+                      (cons key-temp vars))
+                  (if have-default
+                      (list* key-form default vals)
+                      (cons key-form vals))
+                  (list value-temp)
+                  `(let ((,new-value (hashtrie-update ,key-temp ,value-temp ,getter)))
+                     ,setter
+                     ,value-temp)
+                  `(hashtrie-find ,key-temp ,getter ,@(when have-default (list default-temp))))))))
 
 
