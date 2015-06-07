@@ -31,6 +31,40 @@ in a Functional Language" by S. Adams.
 Applications can define their own subtypes of the wbtree type, with
 a specialized comparison predicate for the actual key type.
 
+  - type `wbtree`
+  - function `wbtreep object` => `boolean` 
+  - function `wbtree-empty-p tree` => `boolean` 
+  - function `wbtree-size tree` => `integer` 
+  - function `wbtree-node-value tree` => `value`
+  - function `wbtree-node-key tree` => `key` 
+  - function `wbtree-node-left-subtree tree` => `subtree` 
+  - function `wbtree-node-right-subtree tree` => `subtree` 
+  - function `wbtree-minimum-node tree` => `node` 
+  - function `wbtree-maximum-node tree` => `node` 
+  - function `wbtree-ceiling-node key tree` => `node`
+  - function `wbtree-floor-node key tree` => `node`
+  - function `wbtree-update key value tree &optional test` => `new-tree`, `indicator` 
+  - function `wbtree-remove key tree` => `new-tree`, `indicator` 
+  - function `wbtree-fold function tree &key direction associativity initial-value start end` => `result` 
+  - function `wbtree-map function tree &key direction collectp start end` => `result` 
+  - function `wbtree-find-node key tree` => `node`
+  - function `wbtree-find key tree &optional default` => `value`, `indicator` 
+  - function `wbtree-difference tree1 tree2` => `new-tree` 
+  - function `wbtree-union tree1 tree2 &key combiner` => `new-tree` 
+  - function `wbtree-intersection tree1 tree2 &key combiner` => `new-tree` 
+  - function `wbtree-iterator tree &key direction` => `iterator` 
+  - function `wbtree-equal tree1 tree2 &key test` => `boolean` 
+  - macro `define-wbtree` 
+
+Debugging helpers and esoterica
+
+  - function `wbtree-check-invariants tree`
+  - function `wbtree-rebalance tree` => `new-tree`
+
+Compatibility
+
+  - function `wbtree-lower-boundary-node tree` => `node`
+  - function `wbtree-upper-boundary-node tree` => `node`
 
 Hash Tries
 ----------
@@ -45,7 +79,7 @@ function is `sxhash`.
 
 The implementation of hash tries can be found in package `DARTS.LIB.HASHTRIE`.
 
-- macro define-hashtrie name &body clauses ... 
+- macro `define-hashtrie name &body clauses ...`
 
   Supported clauses are:
 
@@ -212,7 +246,7 @@ The implementation of hash tries can be found in package `DARTS.LIB.HASHTRIE`.
   Answers a copy of `trie`, from which any association of `key`
   has been removed.
 
-- macro `do-hashtrie (key value trie) &body body => whatever
+- macro `do-hashtrie (key value trie) &body body` => `whatever`
 
   Enumerates the key/value pairs in the hash trie, form `trie`
   evaluates to. In each iteration, `key` and `value` are bound
