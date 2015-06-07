@@ -32,6 +32,80 @@ Applications can define their own subtypes of the wbtree type, with
 a specialized comparison predicate for the actual key type.
 
   - type `wbtree`
+
+    This is the base type for all weight-balanced binary trees. Every
+    new tree type introduced by a `define-wbtree` form is a subtype
+    of this type.
+
+  - macro `define-wbtree`
+
+    This macro introduces a new subtype of `wbtree`, as well as a
+    bunch of functions. This macro accepts two kinds of usage. The
+    simplified form exists primarily for backwards compatibility
+    reasons:
+
+        define-wbtree name predicate &optional docstring
+
+    It is equivalent to using the complex form
+
+        (define-wbtree name 
+          (:test predicate)
+          (:constructor nil)
+          (:spread-constructor name)
+          (:documentation docstring))
+
+    The long form has the format
+
+        define-wbtree name clauses...
+
+    where `name` is a symbol naming the new tree type, and each element
+    of `clauses` may be one of
+
+      - `(:test function)`
+
+        Identifies the test function which is used to compare keys. The
+        given function must be a binary function, which answers true, if
+        its first argument is *strictly* less than its second argument.
+
+      - `(:key function)`
+
+        Provides a transformation `function`, which is applied to keys
+        before they are processed further.
+
+      - `(:constructor name)`
+
+        Declares the name of the generated standard constructor 
+        to be `name`. The constructor is a function of a single
+        optional argument, which is a list of key/value pairs in
+        property list style. The default constructor is named
+        `make-NAME`. You may generate a constructor with the
+        default name by omitting this option or using a name of
+        `t`. By specifying this option with a name of `nil`, you
+        can suppress the generation of a constructor function.
+
+      - `(:spread-constructor name)`
+
+        Declares the name of the generated "spread" constructor.
+        This function is just like the regular constructor above,
+        but takes the initial members as `&rest` argument. The
+        default is to not generate a spread constructor, unless
+        this option is specified explicitly.
+
+        If you use a name of `t`, the spread constructor is
+        generated using its default name, which is `make-NAME*`.
+        By giving a name of `nil` (the default), generation of
+        the spread constructor is disabled.
+
+      - `(:predicate name)`
+
+        Provides the name of the type predicate function, which answers
+        true for any object, which is a wbtree of the newly defined type,
+        and false for any other value. If you supply `nil` as the name,
+        then no type predicate is generated. If you supply `t` (the default),
+        the predicate name follows the standard rules used by `defstruct`.
+
+      - `(:documentation string)`
+    
   - function `wbtreep object` => `boolean` 
   - function `wbtree-empty-p tree` => `boolean` 
   - function `wbtree-size tree` => `integer` 
@@ -54,7 +128,6 @@ a specialized comparison predicate for the actual key type.
   - function `wbtree-intersection tree1 tree2 &key combiner` => `new-tree` 
   - function `wbtree-iterator tree &key direction` => `iterator` 
   - function `wbtree-equal tree1 tree2 &key test` => `boolean` 
-  - macro `define-wbtree` 
 
 Debugging helpers and esoterica
 
