@@ -460,7 +460,7 @@ in the same order."
 (defmacro define-hashtrie (name &body options &environment env)
   (labels
       ((the-only-form (clause)
-         (if (and (cadr clause) (null (cddr clause)))
+         (if (and (cdr clause) (null (cddr clause)))
              (cadr clause)
              (error "malformed ~S clause ~S" 'define-hashtrie clause)))
        (the-defaultable-name (value usage)
