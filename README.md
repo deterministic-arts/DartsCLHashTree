@@ -107,18 +107,104 @@ a specialized comparison predicate for the actual key type.
       - `(:documentation string)`
     
   - function `wbtreep object` => `boolean` 
+
+    Answers true, if `object` is a `wbtree` instance, and false otherwise
+
   - function `wbtree-empty-p tree` => `boolean` 
+
+    Answers true, if wbtree instance `tree` is empty, i.e., does not 
+    contain any key/value pairs.
+
   - function `wbtree-size tree` => `integer` 
+
+    Answers the number of key/value pairs contained in wbtree instance 
+    `tree`.
+
   - function `wbtree-node-value tree` => `value`
+
+    Returns the value stored in the tree node `tree`. If `tree` is empty,
+    signals a condition of type `simple-error`.
+
   - function `wbtree-node-key tree` => `key` 
+
+    Returns the key stored in the tree node `tree`. If `tree` is empty,
+    signals a condition of type `simple-error`.
+
   - function `wbtree-node-left-subtree tree` => `subtree` 
+
+    Answers the left subtree under tree node `tree`. If `tree` is empty,
+    answer the node itself (i.e., `tree`). FIXME: this is a strange idea;
+    why did I do it this way?
+
   - function `wbtree-node-right-subtree tree` => `subtree` 
+
+    Answers the right subtree under tree node `tree`. If `tree` is empty,
+    answer the node itself (i.e., `tree`). FIXME: this is a strange idea;
+    why did I do it this way?
+
   - function `wbtree-minimum-node tree` => `node` 
+
+    Answers the tree node with the smallest key value (with respect to the
+    tree's predicate function) in the given wbtree `tree`. If the tree is
+    empty, returns `nil` instead.
+
   - function `wbtree-maximum-node tree` => `node` 
+
+    Answers the tree node with the largest key value (with respect to the
+    tree's predicate function) in the given wbtree `tree`. If the tree is
+    empty, returns `nil` instead.
+
   - function `wbtree-ceiling-node key tree` => `node`
+
+    Answers the node with the smallest key `k`, which is still equal to
+    or greater than `key` in `tree`. If there is no matching key in `tree`,
+    this function answer `nil`.
+
   - function `wbtree-floor-node key tree` => `node`
+
+    Answers the node with the largest key `k`, which is still equal to
+    or less than `key` in `tree`. If there is no matching key in `tree`,
+    this function answer `nil`.
+
   - function `wbtree-update key value tree &optional test` => `new-tree`, `indicator` 
+
+    Answers a wbtree, which contains an association of the given `key`,
+    mapping it to `value`. The resulting tree is a copy of `tree`, potentially
+    modified to hold the new or updated mapping.
+
+    If the value of `key` in `tree` is already "equal" to `value` (as
+    is determined using `test`), the resulting wbtree `new-tree` will be 
+    `tree` itself.
+
+    The secondary return value `indicator` can be used to find out,
+    what changes have been applied to `tree`. Possible values are
+
+    - `nil` No changes have been made, since the value found for the
+      given `key` was already "equal" to the new `value` according to
+      `test`.
+
+    - `:added` A new key/value pair had to be added, since there was
+      no previous mapping for `key` in `tree`.
+
+    - `:replaced` The previous value of `key` in `tree` has been
+      replaced by the given `value`.    
+
+    FIXME: A more meaningful convention would be to return one of
+    `nil` (no changes), `t` (node added), and "old node" (node
+    replaced).
+
   - function `wbtree-remove key tree` => `new-tree`, `indicator` 
+
+    Answers a copy of `tree`, which does not contain a key/value pair,
+    whose key matches `key`. The secondary value `indicator` indicates,
+    which changes have been applied to `tree`. Possible values are
+
+    - `nil` There was no entry matching `key`. The `new-tree` is actually
+      the `tree` itself.
+
+    - The node, which held the old mapping of `key` (and which has been
+      removed in `new-tree`)
+
   - function `wbtree-fold function tree &key direction associativity initial-value start end` => `result` 
   - function `wbtree-map function tree &key direction collectp start end` => `result` 
   - function `wbtree-find-node key tree` => `node`
