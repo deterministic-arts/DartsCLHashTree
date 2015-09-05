@@ -205,10 +205,76 @@ a specialized comparison predicate for the actual key type.
     - The node, which held the old mapping of `key` (and which has been
       removed in `new-tree`)
 
-  - function `wbtree-fold function tree &key direction associativity initial-value start end` => `result` 
-  - function `wbtree-map function tree &key direction collectp start end` => `result` 
-  - function `wbtree-find-node key tree` => `node`
   - function `wbtree-find key tree &optional default` => `value`, `indicator` 
+
+    Answers the value associated with `key` in the wbtree `tree`, or `default`,
+    if the key is not present in `tree`. The `indicator` returned as secondary
+    value is `nil`, if no matching entry is found in `tree`, or the actual
+    tree node, which represent's the association, otherwise.
+
+  - function `wbtree-find-node key tree` => `node`
+
+    Answers the tree node, whose key matches `key` in `tree`, or `nil`,
+    if there is no entry matching `key` in `tree`.
+
+  - function `wbtree-map function tree &key direction collectp start end` => `result` 
+
+    Applies `function` to every node in wbtree `tree`. If `collectp`, the 
+    results of each invocation are collected into a freshly allocated list,
+    which is returned from `wbtree-map` after the traversal. If `collectp`
+    is omitted or `nil`, the results of `function` are ignored, and the
+    `result` value is `nil`.
+
+    If `direction` is `:forward` (the default), the traversal is performed
+    in the direction from "smaller" key values to "larger" key values. 
+    If `start` is given, the traversal starts at the node with the smallest
+    key, which is equal to or greater than value `start`, and will stop
+    before reaching any node, whose key is equal to or greater than the
+    given `end`. If no `end` is supplied, the traversal stops after all
+    nodes have been visited.
+
+    If `direction` is `:backward`, the traversal is performed in the direction 
+    from "larger" key values to "smaller" key values. If `start` is given, 
+    the traversal starts at the node with the largest key, which is equal to 
+    or less than value `start`, and will stop before reaching any node, 
+    whose key is equal to or less than the given `end`. If no `end` is 
+    supplied, the traversal stops after all nodes have been visited.
+    
+  - function `wbtree-fold function tree &key direction associativity initial-value start end` => `result` 
+
+    Generates a "summary" of `tree` by invoking `function` for all
+    nodes. The arguments passed to `function` depend on the value of
+    `associativity` as follows:
+
+    - if `associativity` is `:left`, which is the default, the function 
+      is called with the previous summary value as first, and the tree 
+      node as second parameter.
+
+    - if `associativity` is `:right`, the function is called with the
+      tree node as first, and the previous summary value as second 
+      argument.
+
+    In either case, the value returned by the function will be used 
+    as the new summary value in the next invocation or the final
+    `result`, if all nodes have been processed. On the first invocation,
+    the value supplied as `initial-value` is used; if the tree is
+    empty, the `initial-value` will be returned as `result`. 
+
+    If `direction` is `:forward` (the default), the traversal is performed
+    in the direction from "smaller" key values to "larger" key values. 
+    If `start` is given, the traversal starts at the node with the smallest
+    key, which is equal to or greater than value `start`, and will stop
+    before reaching any node, whose key is equal to or greater than the
+    given `end`. If no `end` is supplied, the traversal stops after all
+    nodes have been visited.
+
+    If `direction` is `:backward`, the traversal is performed in the direction 
+    from "larger" key values to "smaller" key values. If `start` is given, 
+    the traversal starts at the node with the largest key, which is equal to 
+    or less than value `start`, and will stop before reaching any node, 
+    whose key is equal to or less than the given `end`. If no `end` is 
+    supplied, the traversal stops after all nodes have been visited.
+
   - function `wbtree-difference tree1 tree2` => `new-tree` 
   - function `wbtree-union tree1 tree2 &key combiner` => `new-tree` 
   - function `wbtree-intersection tree1 tree2 &key combiner` => `new-tree` 
