@@ -201,12 +201,12 @@
     changes have been performed in the resulting tree when compared
     to the original `tree'. Possible values are:
 
-      - nil, if there was already a suitable association for `key' and
+      - `nil', if there was already a suitable association for `key' and
         `value' in `tree'.
-      - :replaced, if there was an association for `key', which has
-        been replaced.
-      - :added, if the key was not present in `tree', and a new assocation
-        has been added."))
+      - `t', if the key was not present in `tree', and a new assocation
+        has been added.
+      - a node object, which is the node, that has been replaced by
+        one containing the new association."))
 
 (defgeneric wbtree-remove (key tree)
   (:argument-precedence-order tree key)
@@ -392,7 +392,7 @@
     (with-function (make-node)
       (labels ((insert (node)
                  (if (wbtree-empty-p node) 
-                     (values (make-node key value empty-node empty-node) :added)
+                     (values (make-node key value empty-node empty-node) t)
                      (with-node (nkey nvalue _ left right) node
                        (cond
                          ((lessp key nkey) 
@@ -410,7 +410,7 @@
                          (t (if (funcall test value nvalue)
                                 (values node nil)
                                 (values (make-node key value left right)
-                                        :replaced))))))))
+                                        node))))))))
         (insert tree)))))
 
 
