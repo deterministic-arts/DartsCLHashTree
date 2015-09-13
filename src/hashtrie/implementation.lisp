@@ -76,14 +76,6 @@
   (node-tag 0 :type (unsigned-byte 32) :read-only t)
   (node-payload nil :read-only t))
 
-(defmethod print-object ((ob node) stream)
-  (print-unreadable-object (ob stream :type t)
-    (let ((payload (node-payload ob)))
-      (cond
-        ((null payload) (prin1 :empty stream))
-        ((vectorp payload) (format stream "~S ~B" :dispatch (node-tag ob)))
-        (t (format stream "~S ~D" :leaf (length payload)))))))
-
 (declaim (ftype (function (node) (values boolean)) node-empty-p node-leaf-p node-dispatch-p)
          (inline node-empty-p node-leaf-p node-dispatch-p))
 
@@ -237,6 +229,11 @@ present."
            (:empty () 0)
            (:leaf (_ payload) (length payload)))))
     (count-em node)))
+
+
+(defmethod print-object ((ob node) stream)
+  (print-unreadable-object (ob stream :type t :identity t)
+    (format stream "~S ~D" ':size (hashtrie-count ob))))
 
 
 (defun hashtrie-map (func node)
