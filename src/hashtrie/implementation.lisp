@@ -69,14 +69,14 @@
 ;;; node. By using a very special conc-name, we try not
 ;;; to pollute the caller's namespace.
 
-(defstruct (node
+(defstruct (hashtrie
              (:conc-name nil)
              (:constructor make-node (tag payload))
-             (:predicate nodep))
+             (:predicate hashtriep))
   (node-tag 0 :type (unsigned-byte 32) :read-only t)
   (node-payload nil :read-only t))
 
-(declaim (ftype (function (node) (values boolean)) node-empty-p node-leaf-p node-dispatch-p)
+(declaim (ftype (function (hashtrie) (values boolean)) node-empty-p node-leaf-p node-dispatch-p)
          (inline node-empty-p node-leaf-p node-dispatch-p))
 
 (defun node-empty-p (node)
@@ -174,12 +174,6 @@
 ;;; derivations.
 
 
-(defun hashtriep (value)
-  "Tests, whether VALUE is a hash trie of any flavour. Yields
-true, if that's the case, and false otherwise."
-  (nodep value))
-
-
 (defun hashtrie-empty-p (value)
   "Tests, whether the hash trie VALUE is empty. Yields true,
 if that's the case, and false otherwise."
@@ -231,7 +225,7 @@ present."
     (count-em node)))
 
 
-(defmethod print-object ((ob node) stream)
+(defmethod print-object ((ob hashtrie) stream)
   (print-unreadable-object (ob stream :type t :identity t)
     (format stream "~S ~D" ':size (hashtrie-count ob))))
 
@@ -301,8 +295,8 @@ in the same order."
 (defun hashtrie-update-1 (key key-hash value map make-node test)
   (declare (optimize (speed 3) (debug 0))
            (dynamic-extent test)
-           (type node map)
-           (type (function ((unsigned-byte 32) t) (values node)) make-node))
+           (type hashtrie map)
+           (type (function ((unsigned-byte 32) t) (values hashtrie)) make-node))
   (labels
       ((make-node (arg1 arg2) (funcall make-node arg1 arg2))
        (extend-leaf (node)
@@ -527,7 +521,7 @@ in the same order."
 
            (defstruct (,name (:conc-name nil) 
                              (:copier nil)
-                             (:include node)
+                             (:include hashtrie)
                              ,@(when actual-predicate `((:predicate ,actual-predicate)))
                              (:constructor ,node-constructor (node-tag node-payload)))
              ,@(when documentation-string
