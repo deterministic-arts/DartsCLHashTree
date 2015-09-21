@@ -304,6 +304,13 @@ function is `sxhash`.
 
 The implementation of hash tries can be found in package `DARTS.LIB.HASHTRIE`.
 
+- type `hashtrie`
+
+  The type `hashtrie` is a base type for all application defined
+  concrete hashtrie implementations. This type is exposed primarily
+  for the purpose of type discrimination, allowing applications to,
+  say, specialize generic functions on arbitrary hash tries.
+
 - macro `define-hashtrie name &body clauses ...`
 
   Supported clauses are:
@@ -386,7 +393,8 @@ The implementation of hash tries can be found in package `DARTS.LIB.HASHTRIE`.
   After this macro's expansion has been evaluated, `name` 
   names a valid lisp structure type; in particular, the
   name can be used with `typep` as well as for CLOS method
-  dispatch.
+  dispatch. The new structure type is a subtype (in the
+  sense of `subtypep`) of `hashtrie`.
 
   Example:
 
