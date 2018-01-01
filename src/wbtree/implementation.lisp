@@ -1,6 +1,6 @@
 #|                                           -*- mode: lisp; coding: utf-8 -*-
   Deterministic Arts -- Hash Tree
-  Copyright (c) 2013, 2015 Dirk Esser
+  Copyright (c) 2013, 2015, 2018 Dirk Esser
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -180,13 +180,21 @@
 
 
 (defgeneric wbtree-floor-node (key tree)
-  (:argument-precedence-order tree key))
+  (:argument-precedence-order tree key)
+  (:documentation "Answers the node in `tree`, whose key is the largest key
+    less than or equal to `key`. Returns nil, if there is no such node in the
+    given tree."))
 
 (defgeneric wbtree-ceiling-node (key tree)
-  (:argument-precedence-order tree key))
+  (:argument-precedence-order tree key)
+  (:documentation "Answers the node in `tree`, whose key is the smallest key
+    greater than or equal to `key`. Returns nil, if there is no such node in
+    the given tree."))
 
 (defgeneric wbtree-find-node (key tree)
-  (:argument-precedence-order tree key))
+  (:argument-precedence-order tree key)
+  (:documentation "Answers the node of `tree`, whose key matches the given
+    `key` value or nil, if no matching node exists."))
 
 (defgeneric wbtree-update (key value tree &optional test)
   (:argument-precedence-order tree key value)
@@ -326,7 +334,12 @@
    returns two values: the value associated with `key' as primary
    value or `default', if no matching node could be found. The second 
    value is a generalized boolean value, which indicates, whether 
-   the node was found or not."
+   the node was found or not.
+
+   This function can be used with `setf'. In this case, the form
+   of the `tree' argument must be itself a `setf'-able place, which
+   will be updated to hold the modified copy of the tree; the original 
+   tree value is not modified in any way."
   (let ((node (wbtree-find-node key tree)))
     (if node
         (values (node-value node) node)
