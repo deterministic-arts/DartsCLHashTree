@@ -31,13 +31,13 @@ in a Functional Language" by S. Adams.
 Applications can define their own subtypes of the wbtree type, with
 a specialized comparison predicate for the actual key type.
 
-  - type `wbtree`
+  - **Type** `wbtree`
 
     This is the base type for all weight-balanced binary trees. Every
     new tree type introduced by a `define-wbtree` form is a subtype
     of this type.
 
-  - macro `define-wbtree`
+  - **Macro** `define-wbtree`
 
     This macro introduces a new subtype of `wbtree`, as well as a
     bunch of functions. This macro accepts two kinds of usage. The
@@ -106,67 +106,67 @@ a specialized comparison predicate for the actual key type.
 
       - `(:documentation string)`
     
-  - function `wbtreep object` => `boolean` 
+  - **Function** `wbtreep object` => `boolean` 
 
     Answers true, if `object` is a `wbtree` instance, and false otherwise
 
-  - function `wbtree-empty-p tree` => `boolean` 
+  - **Function** `wbtree-empty-p tree` => `boolean` 
 
     Answers true, if wbtree instance `tree` is empty, i.e., does not 
     contain any key/value pairs.
 
-  - function `wbtree-size tree` => `integer` 
+  - **Function** `wbtree-size tree` => `integer` 
 
     Answers the number of key/value pairs contained in wbtree instance 
     `tree`.
 
-  - function `wbtree-node-value tree` => `value`
+  - **Function** `wbtree-node-value tree` => `value`
 
     Returns the value stored in the tree node `tree`. If `tree` is empty,
     signals a condition of type `simple-error`.
 
-  - function `wbtree-node-key tree` => `key` 
+  - **Function** `wbtree-node-key tree` => `key` 
 
     Returns the key stored in the tree node `tree`. If `tree` is empty,
     signals a condition of type `simple-error`.
 
-  - function `wbtree-node-left-subtree tree` => `subtree` 
+  - **Function** `wbtree-node-left-subtree tree` => `subtree` 
 
     Answers the left subtree under tree node `tree`. If `tree` is empty,
     answer the node itself (i.e., `tree`). FIXME: this is a strange idea;
     why did I do it this way?
 
-  - function `wbtree-node-right-subtree tree` => `subtree` 
+  - **Function** `wbtree-node-right-subtree tree` => `subtree` 
 
     Answers the right subtree under tree node `tree`. If `tree` is empty,
     answer the node itself (i.e., `tree`). FIXME: this is a strange idea;
     why did I do it this way?
 
-  - function `wbtree-minimum-node tree` => `node` 
+  - **Function** `wbtree-minimum-node tree` => `node` 
 
     Answers the tree node with the smallest key value (with respect to the
     tree's predicate function) in the given wbtree `tree`. If the tree is
     empty, returns `nil` instead.
 
-  - function `wbtree-maximum-node tree` => `node` 
+  - **Function** `wbtree-maximum-node tree` => `node` 
 
     Answers the tree node with the largest key value (with respect to the
     tree's predicate function) in the given wbtree `tree`. If the tree is
     empty, returns `nil` instead.
 
-  - function `wbtree-ceiling-node key tree` => `node`
+  - **Function** `wbtree-ceiling-node key tree` => `node`
 
     Answers the node with the smallest key `k`, which is still equal to
     or greater than `key` in `tree`. If there is no matching key in `tree`,
     this function answer `nil`.
 
-  - function `wbtree-floor-node key tree` => `node`
+  - **Function** `wbtree-floor-node key tree` => `node`
 
     Answers the node with the largest key `k`, which is still equal to
     or less than `key` in `tree`. If there is no matching key in `tree`,
     this function answer `nil`.
 
-  - function `wbtree-update key value tree &optional test` => `new-tree`, `indicator` 
+  - **Function** `wbtree-update key value tree &optional test` => `new-tree`, `indicator` 
 
     Answers a wbtree, which contains an association of the given `key`,
     mapping it to `value`. The resulting tree is a copy of `tree`, potentially
@@ -193,7 +193,7 @@ a specialized comparison predicate for the actual key type.
     `nil` (no changes), `t` (node added), and "old node" (node
     replaced).
 
-  - function `wbtree-remove key tree` => `new-tree`, `indicator` 
+  - **Function** `wbtree-remove key tree` => `new-tree`, `indicator` 
 
     Answers a copy of `tree`, which does not contain a key/value pair,
     whose key matches `key`. The secondary value `indicator` indicates,
@@ -205,19 +205,19 @@ a specialized comparison predicate for the actual key type.
     - The node, which held the old mapping of `key` (and which has been
       removed in `new-tree`)
 
-  - function `wbtree-find key tree &optional default` => `value`, `indicator` 
+  - **Function** `wbtree-find key tree &optional default` => `value`, `indicator` 
 
     Answers the value associated with `key` in the wbtree `tree`, or `default`,
     if the key is not present in `tree`. The `indicator` returned as secondary
     value is `nil`, if no matching entry is found in `tree`, or the actual
     tree node, which represent's the association, otherwise.
 
-  - function `wbtree-find-node key tree` => `node`
+  - **Function** `wbtree-find-node key tree` => `node`
 
     Answers the tree node, whose key matches `key` in `tree`, or `nil`,
     if there is no entry matching `key` in `tree`.
 
-  - function `wbtree-map function tree &key direction collectp start end` => `result` 
+  - **Function** `wbtree-map function tree &key direction collectp start end` => `result` 
 
     Applies `function` to every node in wbtree `tree`. If `collectp`, the 
     results of each invocation are collected into a freshly allocated list,
@@ -240,7 +240,7 @@ a specialized comparison predicate for the actual key type.
     whose key is equal to or less than the given `end`. If no `end` is 
     supplied, the traversal stops after all nodes have been visited.
     
-  - function `wbtree-fold function tree &key direction associativity initial-value start end` => `result` 
+  - **Function** `wbtree-fold function tree &key direction associativity initial-value start end` => `result` 
 
     Generates a "summary" of `tree` by invoking `function` for all
     nodes. The arguments passed to `function` depend on the value of
@@ -275,21 +275,21 @@ a specialized comparison predicate for the actual key type.
     whose key is equal to or less than the given `end`. If no `end` is 
     supplied, the traversal stops after all nodes have been visited.
 
-  - function `wbtree-difference tree1 tree2` => `new-tree` 
-  - function `wbtree-union tree1 tree2 &key combiner` => `new-tree` 
-  - function `wbtree-intersection tree1 tree2 &key combiner` => `new-tree` 
-  - function `wbtree-iterator tree &key direction` => `iterator` 
-  - function `wbtree-equal tree1 tree2 &key test` => `boolean` 
+  - **Function** `wbtree-difference tree1 tree2` => `new-tree` 
+  - **Function** `wbtree-union tree1 tree2 &key combiner` => `new-tree` 
+  - **Function** `wbtree-intersection tree1 tree2 &key combiner` => `new-tree` 
+  - **Function** `wbtree-iterator tree &key direction` => `iterator` 
+  - **Function** `wbtree-equal tree1 tree2 &key test` => `boolean` 
 
 Debugging helpers and esoterica
 
-  - function `wbtree-check-invariants tree`
-  - function `wbtree-rebalance tree` => `new-tree`
+  - **Function** `wbtree-check-invariants tree`
+  - **Function** `wbtree-rebalance tree` => `new-tree`
 
 Compatibility
 
-  - function `wbtree-lower-boundary-node tree` => `node`
-  - function `wbtree-upper-boundary-node tree` => `node`
+  - **Function** `wbtree-lower-boundary-node tree` => `node`
+  - **Function** `wbtree-upper-boundary-node tree` => `node`
 
 Hash Tries
 ----------
@@ -304,14 +304,14 @@ function is `sxhash`.
 
 The implementation of hash tries can be found in package `DARTS.LIB.HASHTRIE`.
 
-- type `hashtrie`
+- **Type** `hashtrie`
 
   The type `hashtrie` is a base type for all application defined
   concrete hashtrie implementations. This type is exposed primarily
   for the purpose of type discrimination, allowing applications to,
   say, specialize generic functions on arbitrary hash tries.
 
-- macro `define-hashtrie name &body clauses ...`
+- **Macro** `define-hashtrie name &body clauses ...`
 
   Supported clauses are:
 
@@ -411,23 +411,23 @@ The implementation of hash tries can be found in package `DARTS.LIB.HASHTRIE`.
   Literal `lambda` expressions are ok, and so are symbols naming
   functions.
 
-- function `hashtriep value` => `boolean`
+- **Function** `hashtriep value` => `boolean`
 
   Answers true, if `value` is a hash trie instance, and false
   otherwise. Note, that concrete hash trie implementations have
   their own specific predicates, too.
 
-- function `hashtrie-empty-p trie` => `boolean`
+- **Function** `hashtrie-empty-p trie` => `boolean`
 
   Answers true, if hash trie `trie` is empty, and false, if it
   contains at least one key/value pair.
 
-- function `hashtrie-count trie` => `integer`
+- **Function** `hashtrie-count trie` => `integer`
 
   Answers the number of key/value pairs contained in the given
   hash trie `trie`.
 
-- function `hashtrie-fold seed function trie` => `value`
+- **Function** `hashtrie-fold seed function trie` => `value`
 
   Invokes `function` for each key/value pair in hash trie `trie`,
   passing three arguments along: the value returned by the
@@ -436,12 +436,12 @@ The implementation of hash tries can be found in package `DARTS.LIB.HASHTRIE`.
   the value of the last invocation of `function` or `seed`,
   if the `trie` is empty, and `function` is never called.
 
-- function `hashtrie-map function trie` => `unspecified`
+- **Function** `hashtrie-map function trie` => `unspecified`
 
   Invokes `function` once for each key/value pair in `trie`,
   discarding any results.
 
-- function `hashtrie-find key trie &optional default` => `value indicator`
+- **Function** `hashtrie-find key trie &optional default` => `value indicator`
 
   Answers the value associated with `key` in `trie`, or `default`,
   if there is no mapping for `key` in `trie`. The secondary value
@@ -469,17 +469,17 @@ The implementation of hash tries can be found in package `DARTS.LIB.HASHTRIE`.
       (hashtrie-find 1 *trie*)                 ;; Yields "First" as
                                                ;; result value
 
-- function `hashtrie-update key value trie` => `new-trie old-value indicator`
+- **Function** `hashtrie-update key value trie` => `new-trie old-value indicator`
 
   Answers a copy of `trie`, in which `key` is associated with
   `value`. 
 
-- function `hashtrie-remove key trie` => `new-trie old-value indicator`
+- **Function** `hashtrie-remove key trie` => `new-trie old-value indicator`
 
   Answers a copy of `trie`, from which any association of `key`
   has been removed.
 
-- macro `do-hashtrie (key value trie) &body body` => `whatever`
+- **Macro** `do-hashtrie (key value trie) &body body` => `whatever`
 
   Enumerates the key/value pairs in the hash trie, form `trie`
   evaluates to. In each iteration, `key` and `value` are bound
