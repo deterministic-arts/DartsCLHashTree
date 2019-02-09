@@ -325,7 +325,7 @@
   (:documentation "Answers a copy of `tree1', in which all entries have been
     removed, which match keys present in `tree2'."))
 
-(defgeneric wbtree-equal (tree1 tree2 &key test)
+(defgeneric wbtree-equal (tree1 tree2 &key test node-test)
   (:argument-precedence-order tree1 tree2))
 
 
@@ -736,6 +736,32 @@
              (walk-iter (node-key node1) (node-value node1) iter1 
                         (node-key node2) (node-value node2) iter2))))))))
   
+(defun wbtree-equal-2 (tree1 tree2 node-test lessp)
+  (cond 
+    ((eq tree1 tree2) t)
+    ((wbtree-empty-p tree1) (wbtree-empty-p tree2))
+    ((wbtree-empty-p tree2) nil)
+    (t (with-function (lessp)
+         (labels ((not-equal (x y) (or (lessp x y) (lessp y x)))
+                  (walk-iter (node1 iter1 node2 iter2)
+                    (let ((key1 (node-key node1))
+                          (key2 (node-key node2)))
+                      (if (or (not-equal key1 key2) 
+                              (not (funcall node-test node1 node2)))
+                          nil
+                          (let ((node1 (funcall iter1))
+                                (node2 (funcall iter2)))
+                            (if (null node1) 
+                                (null node2)
+                                (and node2
+                                     (walk-iter node1 iter1 
+                                                node2 iter2))))))))
+         (let ((iter1 (wbtree-iterator tree1))
+               (iter2 (wbtree-iterator tree2)))
+           (let ((node1 (funcall iter1))
+                 (node2 (funcall iter2)))
+             (walk-iter node1 iter1 
+                        node2 iter2))))))))
 
 (defun wbtree-check-invariants-1 (tree lessp)
   (with-function (lessp)
@@ -900,6 +926,8 @@
            (value-var (gensym "VALUE-"))
            (pairs-var (gensym "PAIRS-"))
            (test-var (gensym "TEST-"))
+           (full-test-var (gensym "FULL-TEST-"))
+           (have-test-var (gensym "HAVE-TEST-"))
            (func-var (gensym "FUNCTION-"))
            (other-tree-var (gensym "OTHER-TREE-"))
            (combiner-var (gensym "COMBINER-"))                           
@@ -987,8 +1015,14 @@
              (declare (ignore environment))
              (wbtree-load-form ,tree-var ',node-constructor ',empty-node))
 
-           (defmethod wbtree-equal ((,tree-var ,name) (,other-tree-var ,name) &key ((:test ,test-var) #'eql))
-             (wbtree-equal-1 ,tree-var ,other-tree-var ,test-var #',lessp-function)))))))
+           (defmethod wbtree-equal ((,tree-var ,name) (,other-tree-var ,name)
+                                    &key ((:test ,test-var) #'eql ,have-test-var)
+                                         ((:node-test ,full-test-var) nil))
+             (if ,full-test-var
+                 (if ,have-test-var
+                     (error "cannot use both, ~S and ~S" :test :full-test)
+                     (wbtree-equal-2 ,tree-var ,other-tree-var ,full-test-var #',lessp-function))
+                 (wbtree-equal-1 ,tree-var ,other-tree-var ,test-var #',lessp-function))))))))
 
 
 ;; More compatibility stuff, until I get to fixing all places,
