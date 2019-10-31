@@ -330,7 +330,7 @@ in the same order."
          (insert (node code)
            (declare (type (unsigned-byte 32) code))
            (node-type-case node
-             (:empty () (values (make-node code (list (cons key value))) :added))
+             (:empty () (values (make-node code (list (cons key value))) nil :added))
              (:leaf (lhash _)
                (if (= lhash code)
                    (extend-leaf node)
