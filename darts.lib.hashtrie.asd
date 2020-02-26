@@ -1,6 +1,6 @@
 #|                                           -*- mode: lisp; coding: utf-8 -*-
   Deterministic Arts -- Hash Tree
-  Copyright (c) 2013, 2015 Dirk Esser
+  Copyright (c) 2013, 2015, 2020 Dirk Esser
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -21,9 +21,9 @@
   THE SOFTWARE.
 |#
 
-(in-package "COMMON-LISP-USER")
-(defpackage "DARTS.ASDF" (:use "COMMON-LISP" "ASDF"))
-(in-package "DARTS.ASDF")
+(in-package #:common-lisp-user)
+(defpackage #:darts.asdf (:use #:common-lisp #:asdf))
+(in-package #:darts.asdf)
 
 (defsystem :darts.lib.hashtrie
   :name "darts.lib.hashtrie"

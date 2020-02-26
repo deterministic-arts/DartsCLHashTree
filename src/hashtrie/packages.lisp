@@ -1,6 +1,6 @@
 #|                                           -*- mode: lisp; coding: utf-8 -*-
   Deterministic Arts -- Hash Tree
-  Copyright (c) 2013, 2015 Dirk Esser
+  Copyright (c) 2013, 2015, 2020 Dirk Esser
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -22,14 +22,14 @@
 |#
 
 
-(defpackage "DARTS.LIB.HASHTRIE"
-  (:use "COMMON-LISP")
+(defpackage #:darts.lib.hashtrie
+  (:use #:common-lisp)
   (:export 
-    "HASHTRIE" "HASHTRIEP" "HASHTRIE-EMPTY-P" "HASHTRIE-FOLD" "HASHTRIE-MAP" 
-    "HASHTRIE-COUNT" "DEFINE-HASHTRIE" "HASHTRIE-CONTROL" "HASHTRIE-FIND" 
-    "HASHTRIE-UPDATE" "HASHTRIE-REMOVE" "DO-HASHTRIE" "HASHTRIE-KEYS"
-    "HASHTRIE-VALUES" "HASHTRIE-PAIRS" "SIMPLE-HASHTRIE" "MAKE-SIMPLE-HASHTRIE"
-    "SIMPLE-HASHTRIE-P")
+    #:hashtrie #:hashtriep #:hashtrie-empty-p #:hashtrie-fold #:hashtrie-map 
+    #:hashtrie-count #:define-hashtrie #:hashtrie-control #:hashtrie-find 
+    #:hashtrie-update #:hashtrie-remove #:do-hashtrie #:hashtrie-keys
+    #:hashtrie-values #:hashtrie-pairs #:simple-hashtrie #:make-simple-hashtrie
+    #:simple-hashtrie-p)
   
   (:documentation "Purely functional hash-based map structure 
 

@@ -1,6 +1,6 @@
 #|                                           -*- mode: lisp; coding: utf-8 -*-
   Deterministic Arts -- Hash Tree
-  Copyright (c) 2013, 2015 Dirk Esser
+  Copyright (c) 2013, 2015, 2020 Dirk Esser
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -21,16 +21,16 @@
   THE SOFTWARE.
 |#
 
-(defpackage "DARTS.LIB.WBTREE"
-  (:use "COMMON-LISP")
-  (:export "WBTREE" "WBTREEP" "WBTREE-EMPTY-P" "WBTREE-SIZE" "WBTREE-NODE-VALUE" 
-           "WBTREE-NODE-KEY" "WBTREE-NODE-LEFT-SUBTREE" "WBTREE-NODE-RIGHT-SUBTREE" 
-           "WBTREE-UPDATE" "WBTREE-REMOVE" "WBTREE-MAP" "WBTREE-FIND-NODE" 
-           "WBTREE-FIND" "WBTREE-DIFFERENCE" "WBTREE-UNION" "WBTREE-INTERSECTION" 
-           "WBTREE-ITERATOR" "WBTREE-EQUAL" "DEFINE-WBTREE" "WBTREE-LOWER-BOUNDARY-NODE"
-           "WBTREE-UPPER-BOUNDARY-NODE" "WBTREE-CHECK-INVARIANTS" "WBTREE-REBALANCE"
-           "WBTREE-FOLD" "WBTREE-MINIMUM-NODE" "WBTREE-MAXIMUM-NODE" "WBTREE-CEILING-NODE"
-           "WBTREE-FLOOR-NODE")
+(defpackage #:darts.lib.wbtree
+  (:use #:common-lisp)
+  (:export #:wbtree #:wbtreep #:wbtree-empty-p #:wbtree-size #:wbtree-node-value 
+           #:wbtree-node-key #:wbtree-node-left-subtree #:wbtree-node-right-subtree 
+           #:wbtree-update #:wbtree-remove #:wbtree-map #:wbtree-find-node 
+           #:wbtree-find #:wbtree-difference #:wbtree-union #:wbtree-intersection 
+           #:wbtree-iterator #:wbtree-equal #:define-wbtree #:wbtree-lower-boundary-node
+           #:wbtree-upper-boundary-node #:wbtree-check-invariants #:wbtree-rebalance
+           #:wbtree-fold #:wbtree-minimum-node #:wbtree-maximum-node #:wbtree-ceiling-node
+           #:wbtree-floor-node)
   (:documentation "Generalized weight-balanced binary search trees. This
 package provides a variant of the weight-balanced binary trees implemented
 in package DARTS.LIB.PTREE. The variant exposed here can be used with arbitrary

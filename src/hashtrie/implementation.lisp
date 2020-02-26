@@ -1,6 +1,6 @@
 #|                                           -*- mode: lisp; coding: utf-8 -*-
   Deterministic Arts -- Hash Tree
-  Copyright (c) 2013, 2015 Dirk Esser
+  Copyright (c) 2013, 2015, 2020 Dirk Esser
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,7 @@
 |#
 
 
-(in-package "DARTS.LIB.HASHTRIE")
+(in-package #:darts.lib.hashtrie)
 
 
 ;;; Helpers
