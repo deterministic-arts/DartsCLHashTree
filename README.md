@@ -109,6 +109,12 @@ a specialized comparison predicate for the actual key type.
   - **Function** `wbtreep object` => `boolean` 
 
     Answers true, if `object` is a `wbtree` instance, and false otherwise
+    
+  - **Function** `wbtree-test` => `function`
+  
+    Answers the binary predicate function that controls the tree structure. The result
+    is a function value and matches whatever was specified as the tree type's `:test`
+    function when it was defined
 
   - **Function** `wbtree-empty-p tree` => `boolean` 
 
@@ -274,6 +280,8 @@ a specialized comparison predicate for the actual key type.
     or less than value `start`, and will stop before reaching any node, 
     whose key is equal to or less than the given `end`. If no `end` is 
     supplied, the traversal stops after all nodes have been visited.
+    
+  - **Function** `wbtree-correlate function tree1 tree2 &key test direction` => unspecific 
 
   - **Function** `wbtree-difference tree1 tree2` => `new-tree` 
   - **Function** `wbtree-union tree1 tree2 &key combiner` => `new-tree` 

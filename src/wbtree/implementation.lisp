@@ -84,6 +84,8 @@
   "Answers the number of valid key/value pairs contained in `tree'"
   (node-count node))
 
+(defgeneric wbtree-test (object))
+
 (defun wbtree-node-value (node)
   "Obtains the value associated with `node'. If `node' is the empty
    tree, raises a condition of type `simple-error'."
@@ -1011,6 +1013,9 @@
            (defmethod wbtree-rebalance ((,tree-var ,name))
              (wbtree-rebalance-1 ,tree-var #',node-constructor ,empty-node))
 
+           (defmethod wbtree-test ((,tree-var ,name))
+             (declare (ignore ,tree-var)) #',lessp-function)
+
            (defmethod make-load-form ((,tree-var ,name) &optional environment)
              (declare (ignore environment))
              (wbtree-load-form ,tree-var ',node-constructor ',empty-node))
@@ -1054,3 +1059,43 @@
                      ,setter
                      ,value-temp)
                   `(wbtree-find ,key-temp ,getter ,@(when have-default (list default-temp))))))))
+
+
+(defun wbtree-correlate (function tree1 tree2
+                         &key test (direction :forward))
+  (let* ((predicate (or test (wbtree-test tree1)))
+         (test (if (eq direction :forward) predicate (lambda (o1 o2) (funcall predicate o2 o1))))
+         (iter1 (wbtree-iterator tree1 :direction direction))
+         (iter2 (wbtree-iterator tree2 :direction direction))
+         (node1 (funcall iter1))
+         (node2 (funcall iter2)))
+    (loop
+      while (and node1 node2)
+      do (let ((key1 (wbtree-node-key node1))
+               (key2 (wbtree-node-key node2)))
+           (cond
+             ((funcall test key1 key2)
+              (funcall function node1 nil)
+              (setf node1 (funcall iter1)))
+             ((funcall test key2 key1)
+              (funcall function nil node2)
+              (setf node2 (funcall iter2)))
+             (t
+              (funcall function node1 node2)
+              (setf node1 (funcall iter1))
+              (setf node2 (funcall iter2))))))
+    (loop
+      while node1
+      do (funcall function node1 nil)
+         (setf node1 (funcall iter1)))
+    (loop
+      while node2
+      do (funcall function nil node2)
+         (setf node2 (funcall iter2)))))
+
+(defmacro do-correlated-wbtree-nodes (((bind1 tree1) (bind2 tree2) &rest options) &body body)
+  `(block nil
+     (wbtree-correlate (lambda (,bind1 ,bind2) ,@body)
+                         ,tree1 ,tree2
+                         ,@options)))
+                                             

@@ -30,7 +30,8 @@
            #:wbtree-iterator #:wbtree-equal #:define-wbtree #:wbtree-lower-boundary-node
            #:wbtree-upper-boundary-node #:wbtree-check-invariants #:wbtree-rebalance
            #:wbtree-fold #:wbtree-minimum-node #:wbtree-maximum-node #:wbtree-ceiling-node
-           #:wbtree-floor-node #:do-wbtree)
+           #:wbtree-floor-node #:do-wbtree #:wbtree-test #:wbtree-correlate
+           #:do-correlated-wbtree-nodes)
   (:documentation "Generalized weight-balanced binary search trees. This
 package provides a variant of the weight-balanced binary trees implemented
 in package DARTS.LIB.PTREE. The variant exposed here can be used with arbitrary
