@@ -29,7 +29,7 @@
     #:hashtrie-count #:define-hashtrie #:hashtrie-control #:hashtrie-find 
     #:hashtrie-update #:hashtrie-remove #:do-hashtrie #:hashtrie-keys
     #:hashtrie-values #:hashtrie-pairs #:simple-hashtrie #:make-simple-hashtrie
-    #:simple-hashtrie-p)
+    #:simple-hashtrie-p #:equal-hashtrie #:make-equal-hashtrie #:equal-hashtrie-p)
   
   (:documentation "Purely functional hash-based map structure 
 

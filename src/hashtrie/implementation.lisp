@@ -573,3 +573,10 @@ in the same order."
   (:spread-constructor simple-hashtrie)
   (:hash sxhash)
   (:test eql))
+
+(define-hashtrie equal-hashtrie
+  (:constructor make-equal-hashtrie)
+  (:predicate equal-hashtrie-p)
+  (:hash sxhash)
+  (:test equal))
+
