@@ -198,6 +198,9 @@
   (:documentation "Answers the node of `tree`, whose key matches the given
     `key` value or nil, if no matching node exists."))
 
+(defgeneric wbtree-modify (key value tree modifier)
+  (:argument-precedence-order tree key value modifier))
+
 (defgeneric wbtree-update (key value tree &optional test)
   (:argument-precedence-order tree key value)
   (:documentation "Returns a copy of tree, in which `key' has been associated with
@@ -402,7 +405,7 @@
             (t (make-node key value left right))))))
 
 
-(defun wbtree-update-1 (key value tree test lessp make-node empty-node)
+(defun wbtree-update-1 (key value tree modifier lessp make-node empty-node)
   (with-function (lessp)
     (with-function (make-node)
       (labels ((insert (node)
@@ -422,10 +425,11 @@
                                 (values node nil)
                                 (values (rebalance make-node nkey nvalue left new-right)
                                         change))))
-                         (t (if (funcall test value nvalue)
-                                (values node nil)
-                                (values (make-node key value left right)
-                                        node))))))))
+                         (t (multiple-value-bind (new-value modify) (funcall modifier value nvalue)
+                              (if (not modify)
+                                  (values node nil)
+                                  (values (make-node key new-value left right)
+                                          node)))))))))
         (insert tree)))))
 
 
@@ -864,7 +868,16 @@
                                         ,(recurse (1+ middle) end))))))))
       (recurse 0 size))))
 
+(defun default-eql-modifier (proposed current)
+  (if (eql proposed current)
+      (values current nil)
+      (values proposed t)))
 
+(defun predicate-modifier (test)
+  (lambda (proposed current)
+    (if (funcall test proposed current)
+        (values current nil)
+        (values proposed t))))
 
 (defmacro define-wbtree (name &body rest)
   ;; There is simply too much code lying around, which relies on
@@ -980,8 +993,15 @@
            (defmethod wbtree-find-node (,raw-key-var (,tree-var ,name))
              ,(add-key-transformation `(wbtree-find-node-1 ,key-var ,tree-var #',lessp-function)))
 
-           (defmethod wbtree-update (,raw-key-var ,value-var (,tree-var ,name) &optional (,test-var #'eql))
-             ,(add-key-transformation `(wbtree-update-1 ,key-var ,value-var ,tree-var ,test-var #',lessp-function #',node-constructor ,empty-node)))
+           (defmethod wbtree-update (,raw-key-var ,value-var (,tree-var ,name) &optional (,test-var #'eql ,have-test-var))
+             ,(add-key-transformation `(wbtree-update-1 ,key-var ,value-var ,tree-var
+                                                        (if ,have-test-var (predicate-modifier ,test-var) #'default-eql-modifier)
+                                                        #',lessp-function #',node-constructor ,empty-node)))
+
+           (defmethod wbtree-modify (,raw-key-var ,value-var (,tree-var ,name) ,test-var)
+             ,(add-key-transformation `(wbtree-update-1 ,key-var ,value-var ,tree-var
+                                                        ,test-var
+                                                        #',lessp-function #',node-constructor ,empty-node)))
 
            (defmethod wbtree-remove (,raw-key-var (,tree-var ,name))
              ,(add-key-transformation `(wbtree-remove-1 ,key-var ,tree-var #',lessp-function #',node-constructor)))
