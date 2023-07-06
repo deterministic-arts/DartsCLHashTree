@@ -75,6 +75,8 @@
              ,@(unless (string= "_" right) (list `(,right (node-right ,node-var)))))
          ,@body))))
 
+(defgeneric transform-key (key object)
+  (:method (key (object wbtree)) (declare (ignore object)) key))
 
 (defun wbtree-empty-p (node)
   "Tests, whether `node' represents an empty tree."
@@ -698,7 +700,7 @@
                               lessp make-node empty-node)))))))
     (difference* tree1 tree2)))
 
-
+#-(and)                                 ; see below
 (defun wbtree-iterator (tree &key (direction :forward))
   (let ((forward (ecase direction ((:forward t) t) ((:backward nil) nil))))
     (let ((left (if forward #'node-left #'node-right))
@@ -1036,6 +1038,12 @@
            (defmethod wbtree-test ((,tree-var ,name))
              (declare (ignore ,tree-var)) #',lessp-function)
 
+           (defmethod transform-key (,key-var (,tree-var ,name))
+             (declare (ignore ,tree-var))
+             ,(if key-transformation
+                  `(,key-transformation ,key-var)
+                  key-var))
+
            (defmethod make-load-form ((,tree-var ,name) &optional environment)
              (declare (ignore environment))
              (wbtree-load-form ,tree-var ',node-constructor ',empty-node))
@@ -1144,3 +1152,96 @@
          (go descend-left)
        done
          (return-from wbtree-scan-range-forward tree)))))
+
+(defun make-forward-iterator (comparator tree)
+  (labels
+      ((not-too-small-p (node) (>= (funcall comparator (node-key node)) 0))
+       (too-large-p (node) (> (funcall comparator (node-key node)) 0)))
+    (let ((node tree) (stack nil) (first-call t))
+      (lambda ()
+        (block nil
+          (tagbody
+             (unless first-call (go descend-left))
+             (setf first-call nil)
+           find-start
+             (when (wbtree-empty-p node) (go walk-stack))
+             (when (not-too-small-p node)
+               (psetf stack (cons node stack) node (node-left node))
+               (go find-start))
+             (setf node (node-right node))
+             (go find-start)
+           walk-stack
+             (when (or (null stack) (too-large-p (car stack))) (go done))
+             (let ((answer (car stack)))
+               (setf node (node-right (car stack)))
+               (setf stack (cdr stack))
+               (return answer))
+           descend-left
+             (when (wbtree-empty-p node) (go walk-stack))
+             (setf stack (cons node stack))
+             (setf node (node-left node))
+             (go descend-left)
+           done
+             (return nil)))))))
+
+(defun make-backward-iterator (comparator tree)
+  (labels
+      ((not-too-large-p (node) (<= (funcall comparator (node-key node)) 0))
+       (too-small-p (node) (< (funcall comparator (node-key node)) 0)))
+    (let ((node tree) (stack nil) (first-call t))
+      (lambda ()
+        (block nil
+          (tagbody
+             (unless first-call (go descend-right))
+             (setf first-call nil)
+           find-start
+             (when (wbtree-empty-p node) (go walk-stack))
+             (when (not-too-large-p node)
+               (psetf stack (cons node stack) node (node-right node))
+               (go find-start))
+             (setf node (node-left node))
+             (go find-start)
+           walk-stack
+             (when (or (null stack) (too-small-p (car stack))) (go done))
+             (let ((answer (car stack)))
+               (setf node (node-left (car stack)))
+               (setf stack (cdr stack))
+               (return answer))
+           descend-right
+             (when (wbtree-empty-p node) (go walk-stack))
+             (setf stack (cons node stack))
+             (setf node (node-right node))
+             (go descend-right)
+           done
+             (return nil)))))))
+
+(defun wbtree-iterator (tree
+                        &key (start nil have-start) (end nil have-end)
+                             (comparator nil have-comparator)
+                             (direction :forward) ; compatibility with the old API
+                             (from-end (eq direction :backwards)))
+  (let ((comparator
+          (if have-comparator comparator
+              (let* ((start (and have-start (transform-key start tree)))
+                     (end (and have-end (transform-key end tree)))
+                     (test (wbtree-test tree))
+                     (lessp (if from-end (lambda (x y) (funcall test y x)) test))
+                     (not-greaterp (if from-end (lambda (x y) (not (funcall test x y))) (lambda (x y) (not (funcall test y x)))))
+                     (smaller (if from-end 1 -1))
+                     (larger (if from-end -1 1)))
+                ;(when from-end (rotatef start end))
+                (cond
+                  ((and have-start have-end)
+                   (lambda (key)
+                     (cond
+                       ((funcall lessp key start) smaller)
+                       ((funcall not-greaterp end key) larger)
+                       (t 0))))
+                  (have-start (lambda (key) (if (funcall lessp key start) smaller 0)))
+                  (have-end (lambda (key) (if (funcall not-greaterp end key) larger 0)))
+                  (t (constantly 0)))))))              
+    (if from-end
+        (make-backward-iterator comparator tree)
+        (make-forward-iterator comparator tree))))
+
+  

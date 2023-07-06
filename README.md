@@ -305,7 +305,63 @@ a specialized comparison predicate for the actual key type.
   - **Function** `wbtree-difference tree1 tree2` => `new-tree` 
   - **Function** `wbtree-union tree1 tree2 &key combiner` => `new-tree` 
   - **Function** `wbtree-intersection tree1 tree2 &key combiner` => `new-tree` 
-  - **Function** `wbtree-iterator tree &key direction` => `iterator` 
+  
+  - **Function** `wbtree-iterator tree &key start end comparator from-end` => `iterator` 
+  
+    Answers a function of zero arguments, that on each call produces the next
+    available node (in iterations order) from the given `tree`. If all nodes
+    have been generated, the iterator functions returns `nil`.
+    
+    If `from-end` is true, then iteration is backwards, from larger to smaller
+    nodes, otherwise it matches the tree order (i.e., nodes are produced from
+    smallest to largest). The default for `from-end` is false.
+    
+    The iterator can be used to produce only a subset (a contiguous range) of
+    nodes by specifying an appropriate `comparator`. The comparator is a function
+    of one element (the key of a node in the tree) that returns 
+    
+      - a **negative integer** if the key is smaller than any key in the
+        desired range
+        
+      - a **positive integer** if the key is larger than any key in the
+        desired range
+        
+      - **zero** if the key lies in the desired range
+      
+    Example:
+   
+    ```
+    (define-wbtree integer-tree (:test <))
+    (defvar *tree* (make-integer-tree (list 1 t 2 t 3 t 4 t 5 t)))
+    
+    (loop
+      with iter = (wbtree-iterator *tree* 
+                     :comparator (lambda (key)
+                                  (cond
+                                    ((< key 2) -1)
+                                    ((<= 4 key) 1)
+                                    (t 0))))
+      for node = (funcall iter) then (funcall iter) while node
+      as value = (wbtree-node-key node)
+      do (print value))
+    ```
+
+    prints `2` and `3`. For simple use cases, instead of providing a
+    comparator function, client code can also provide `start` and/or 
+    `end`. In this case, iteration starts with the first element in the
+    tree whose key is not less than `start`, and stops when reaching 
+    an element whose key is at least `end`. If `from-end`, iteration
+    starts at the largest element not larger than `start` and stops at
+    the largest element not smaller than `end`. Hence, the example 
+    above could have been written as
+   
+    ```
+    (wbtree-iterator *tree* :start 2 :end 4)
+    ```
+   
+    The values for `start` and `end` are ignored if a `comparator` is
+    explicitly specified. 
+  
   - **Function** `wbtree-equal tree1 tree2 &key test` => `boolean` 
 
 Debugging helpers and esoterica
