@@ -1119,3 +1119,28 @@
                          ,tree1 ,tree2
                          ,@options)))
                                              
+(defun wbtree-scan-range-forward (function comparator tree)
+  (labels
+      ((not-too-small-p (node) (>= (funcall comparator (node-key node)) 0))
+       (too-large-p (node) (> (funcall comparator (node-key node)) 0)))
+    (let ((node tree) (stack nil))
+      (tagbody
+       find-start
+         (when (wbtree-empty-p node) (go walk-stack))
+         (when (not-too-small-p node)
+           (psetf stack (cons node stack) node (node-left node))
+           (go find-start))
+         (setf node (node-right node))
+         (go find-start)
+       walk-stack
+         (when (or (null stack) (too-large-p (car stack))) (go done))
+         (funcall function (car stack))
+         (setf node (node-right (car stack)))
+         (setf stack (cdr stack))
+       descend-left
+         (when (wbtree-empty-p node) (go walk-stack))
+         (setf stack (cons node stack))
+         (setf node (node-left node))
+         (go descend-left)
+       done
+         (return-from wbtree-scan-range-forward tree)))))

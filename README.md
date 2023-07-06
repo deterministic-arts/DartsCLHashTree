@@ -281,6 +281,25 @@ a specialized comparison predicate for the actual key type.
     whose key is equal to or less than the given `end`. If no `end` is 
     supplied, the traversal stops after all nodes have been visited.
     
+  - **Function** `wbtree-scan-range-forward function comparator tree` => unspecific
+  
+    Applies `function` to the subset of nodes of `tree` (in order) for 
+    which the given `comparator` function indicates, that they are contained 
+    in the desired range. The comparator is a function of one argument (a 
+    key found in some tree node) that returns an integer as follows
+    
+     - the value is negative if the key value is smaller than the first 
+       desired value in the range
+       
+     - the value is positive if the key value is larger than the last
+       desired value in the range
+       
+     - the value is zero if the key value lies within the range to 
+       report via `function`
+       
+    This function itself has no interesting return value; it currently
+    always returns the input `tree`.
+    
   - **Function** `wbtree-correlate function tree1 tree2 &key test direction` => unspecific 
 
   - **Function** `wbtree-difference tree1 tree2` => `new-tree` 
